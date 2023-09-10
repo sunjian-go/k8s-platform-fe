@@ -840,7 +840,7 @@ export default {
           });
         });
     },
-    //删除
+    //删除deployment
     deleteDeployment(obj) {
       console.log("将删除：", obj, "namespace为：", this.namespaceValue);
       this.deleteDeploymentData.params.name = obj;
@@ -897,7 +897,7 @@ export default {
       this.scaleDeploymentData.params.namespace=this.namespaceValue
       this.num=objnum
     },
-    //扩缩容函数
+    //扩缩容deployment
     scaleDeployment(){
       this.scaleDeploymentData.params.replca=this.num
       console.log("扩缩容的对象为：",this.scaleDeploymentData.params)
@@ -931,7 +931,7 @@ export default {
         console.log("获取详情失败：",res.err)
       })
     },
-    //更新
+    //更新deployment
     updateDeployment() {
       //console.log("详情为：",this.deploymentDetail)
       this.updateDeploymentData.params.namespace = this.namespaceValue;
