@@ -10,10 +10,10 @@ import App from "./App.vue";
 import router from "./router";
 
 //codemirror编辑器
-import  {GlobalCmComponent} from "codemirror-editor-vue3";
-// 引入主题 可以从 codemirror/theme/ 下引入多个
+import { GlobalCmComponent } from "codemirror-editor-vue3";
+//引入主题 可以从 codemirror/theme/ 下引入多个
 import "../node_modules/codemirror-editor-vue3/node_modules/codemirror/theme/idea.css";
- // 引入语言模式 可以从 codemirror/mode/ 下引入多个
+//引入语言模式 可以从 codemirror/mode/ 下引入多个
 import "../node_modules/codemirror-editor-vue3/node_modules/codemirror/mode/yaml/yaml.js";
 
 //创建vue实例
@@ -22,6 +22,7 @@ const app = createApp(App);
 for (let iconName in ELIcons) {
   app.component(iconName, ELIcons[iconName]);
 }
+app.use(GlobalCmComponent);
 //引入element plus
 app.use(ElementPlus);
 //引入路由

@@ -38,7 +38,7 @@
                 </div>
               </el-col>
               <!-- 刷新按钮 -->
-              <!-- :offset 指定该列在水平方向上的偏移量，即在左侧空出多少个网格单位的宽度。 -->      'mysql_native_password
+              <!-- :offset 指定该列在水平方向上的偏移量，即在左侧空出多少个网格单位的宽度。 -->
               <el-col :span="2" :offset="16">
                 <div>
                   <!-- plain：指定为朴素按钮 -->
@@ -76,221 +76,6 @@
                     v-loading.fullscreen.lock="fullscreenLoading"
                     >创建</el-button
                   >
-                  <!-- 抽屉 -->
-                  <!-- v-model="drawer"：绑定该值用于显示(true)与隐藏(false) -->
-                  <!-- :direction 设置显示的位置 -->
-                  <!-- :before-close 关闭时触发，点击关闭或者空白区域都会触发 -->
-                  <el-drawer
-                    v-model="drawer"
-                    :direction="direction"
-                    :before-close="handleClose"
-                  >
-                    <!-- 插槽：抽屉标题  -->
-                    <template #title>
-                      <span style="font-weight: bold; font-size: 18px"
-                        >创建Deployment</span
-                      >
-                    </template>
-                    <!-- 插槽，抽屉body，填写表单属性 -->
-                    <template #default>
-                      <!-- type="flex"  布局模式，可选 flex -->
-                      <!-- justify="center"  flex布局下的水平排列方式 -->
-                      <el-row type="flex" justify="center">
-                        <el-col :span="20">
-                          <!-- ref绑定控件后，js中才能用this.$ref获取该控件 -->
-                          <!-- rules 定义form表单校验规则 -->
-                          <!-- label-width 限制左侧标题的宽度 -->
-                          <el-form
-                            label-width="80px"
-                            ref="createDeployment"
-                            :rules="createDeploymentRules"
-                            :model="createDeployment"
-                          >
-                            <el-form-item
-                              label="名称"
-                              prop="name"
-                              class="deploy-create-form"
-                            >
-                              <el-input
-                                v-model="createDeployment.name"
-                              ></el-input>
-                            </el-form-item>
-                            <el-form-item
-                              label="命名空间"
-                              prop="namespace"
-                              class="deploy-create-form"
-                            >
-                              <el-select
-                                v-model="createDeployment.namespace"
-                                filterable
-                                placeholder="请选择"
-                                style="width: 100%"
-                              >
-                                <el-option
-                                  v-for="(item, index) in namespaceList"
-                                  :key="index"
-                                  :label="item.metadata.name"
-                                  :value="item.metadata.name"
-                                />
-                              </el-select>
-                            </el-form-item>
-                            <el-form-item
-                              label="副本数"
-                              prop="replicas"
-                              style="width: 90%"
-                            >
-                              <el-input-number
-                                v-model="createDeployment.replicas"
-                                :min="1"
-                                :max="10"
-                                style="width: 80%"
-                              ></el-input-number>
-                              <!-- 弹出框 -->
-                              <!-- placement 消息出现的位置 -->
-                              <!-- trigger 触发方式 hover表示悬停 -->
-                              <!-- content 显示的内容，也可以通过写入默认 slot 修改显示内容 -->
-                              <el-popover
-                                style="width: 20%"
-                                placement="top"
-                                :width="100"
-                                trigger="hover"
-                                content="申请副本数上限为10个"
-                              >
-                                <template #reference>
-                                  <el-icon
-                                    style="
-                                      width: 2em;
-                                      font-size: 18px;
-                                      color: #4795ee;
-                                    "
-                                    ><WarningFilled
-                                  /></el-icon>
-                                </template>
-                              </el-popover>
-                            </el-form-item>
-                            <el-form-item
-                              label="镜像"
-                              prop="image"
-                              class="deploy-create-form"
-                            >
-                              <el-input
-                                v-model="createDeployment.image"
-                              ></el-input>
-                            </el-form-item>
-                            <el-form-item
-                              label="标签"
-                              prop="label_str"
-                              class="deploy-create-form"
-                            >
-                              <!-- placeholder: 用来在输入框显示提示信息 -->
-                              <el-input
-                                v-model="createDeployment.label_str"
-                                placeholder="示例: project=ms,app=gateway"
-                              ></el-input>
-                            </el-form-item>
-                            <el-form-item
-                              label="资源配额"
-                              prop="resource"
-                              class="deploy-create-form"
-                            >
-                              <el-select
-                                v-model="createDeployment.resource"
-                                style="width: 100%"
-                                placeholder="cpu/mem"
-                              >
-                                <el-option
-                                  v-for="(data, i) in resources"
-                                  :key="i"
-                                  :label="data"
-                                  :value="data"
-                                >
-                                </el-option>
-                              </el-select>
-                            </el-form-item>
-                            <el-form-item
-                              label="容器端口"
-                              prop="container_port"
-                              class="deploy-create-form"
-                            >
-                              <el-input
-                                v-model="createDeployment.container_port"
-                                placeholder="示例：80"
-                              ></el-input>
-                            </el-form-item>
-                            <el-form-item
-                              label="健康检查"
-                              class="deploy-create-form"
-                            >
-                              <!-- el-switch 开关按钮 -->
-                              <el-switch
-                                v-model="createDeployment.health_check"
-                              />
-                            </el-form-item>
-                            <el-form-item
-                              label="检查路径"
-                              class="deploy-create-form"
-                            >
-                              <el-input
-                                v-model="createDeployment.health_path"
-                              ></el-input>
-                            </el-form-item>
-                          </el-form>
-                        </el-col>
-                      </el-row>
-                    </template>
-                    <template #footer>
-                      <el-button @click="drawer = false">取消</el-button>
-                      <el-button
-                        type="primary"
-                        @click="submitForm('createDeployment')"
-                        >立即创建</el-button
-                      >
-                    </template>
-                  </el-drawer>
-                  <!-- yaml编辑器 -->
-                  <el-dialog
-                      title="YAML信息"
-                      v-model="yamlDialog"
-                      width="45%"
-                      top="5%"
-                    >
-                      <JsonEditorVue
-                        style="height: 500px"
-                        v-model="deploymentDetail"
-                        :showBtns="false"
-                        :mode="'code'"
-                        lang="zh"
-                      ></JsonEditorVue>
-                      <template #footer>
-                        <span class="dialog-footer">
-                          <el-button @click="yamlDialog = false"
-                            >取 消</el-button
-                          >
-                          <el-button type="primary" @click="updateDeployment()"
-                            >更 新</el-button
-                          >
-                        </span>
-                      </template>
-                    </el-dialog>
-                    <!-- 扩缩容弹出框 -->
-                    <el-dialog title="扩缩容" v-model="scalestatus" width="25%" top="5%">
-                      <el-row>
-                        <el-col :span="24" style="display: flex;justify-content: center;">
-                          <el-input-number
-                                v-model="num"
-                                :min="0"
-                                :max="10"
-                                style="width: 80%;"
-                              ></el-input-number>
-                        </el-col>
-                      </el-row>
-                      <template #footer>
-                             <span class="dialog-footer">
-                                <el-button @click="scalestatus=false">取 消</el-button>
-                                 <el-button type="primary" @click="scaleDeployment">确 定</el-button>
-                             </span>
-                          </template>
-                    </el-dialog>
                 </div>
               </el-col>
               <!-- 输入框和搜索框 -->
@@ -343,7 +128,9 @@
               <el-table-column label="标签" align="left">
                 <template v-slot="scope">
                   <div
-                    v-for="(val, key) in scope.row.metadata.labels" :key="key">
+                    v-for="(val, key) in scope.row.metadata.labels"
+                    :key="key"
+                  >
                     <!-- :content="`${key}: ${val}`" 要想给参数赋值一个变量，必须前面用：绑定该变量才可以用 -->
                     <el-popover
                       style="width: 100%"
@@ -412,14 +199,23 @@
                       type="primary"
                       icon="Edit"
                       plain
-                      @click="getDeploymentDetail(scope.row.metadata.name),yamlDialog = true"
+                      @click="
+                        getDeploymentDetail(scope.row.metadata.name),
+                          (yamlDialog = true)
+                      "
                       >YAML</el-button
                     >
-                    
+
                     <el-button
                       type="primary"
                       icon="Plus"
-                      @click="getreplcanum(scope.row.spec.replicas,scope.row.metadata.name),scalestatus = true"
+                      @click="
+                        getreplcanum(
+                          scope.row.spec.replicas,
+                          scope.row.metadata.name
+                        ),
+                          (scalestatus = true)
+                      "
                       >扩缩</el-button
                     >
                     <el-button
@@ -478,19 +274,203 @@
         </div>
       </el-col>
     </el-row>
+    <!-- 抽屉包括其他dialog都可以放在代码块的最后 -->
+    <!-- 创建里面的抽屉 -->
+    <!-- v-model="drawer"：绑定该值用于显示(true)与隐藏(false) -->
+    <!-- :direction 设置显示的位置 -->
+    <!-- :before-close 关闭时触发，点击关闭或者空白区域都会触发 -->
+    <el-drawer
+      v-model="drawer"
+      :direction="direction"
+      :before-close="handleClose"
+    >
+      <!-- 插槽：抽屉标题  -->
+      <template #title>
+        <span style="font-weight: bold; font-size: 18px">创建Deployment</span>
+      </template>
+      <!-- 插槽，抽屉body，填写表单属性 -->
+      <template #default>
+        <!-- type="flex"  布局模式，可选 flex -->
+        <!-- justify="center"  flex布局下的水平排列方式 -->
+        <el-row type="flex" justify="center">
+          <el-col :span="20">
+            <!-- ref绑定控件后，js中才能用this.$ref获取该控件 -->
+            <!-- rules 定义form表单校验规则 -->
+            <!-- label-width 限制左侧标题的宽度 -->
+            <el-form
+              label-width="80px"
+              ref="createDeployment"
+              :rules="createDeploymentRules"
+              :model="createDeployment"
+            >
+              <el-form-item label="名称" prop="name" class="deploy-create-form">
+                <el-input v-model="createDeployment.name"></el-input>
+              </el-form-item>
+              <el-form-item
+                label="命名空间"
+                prop="namespace"
+                class="deploy-create-form"
+              >
+                <el-select
+                  v-model="createDeployment.namespace"
+                  filterable
+                  placeholder="请选择"
+                  style="width: 100%"
+                >
+                  <el-option
+                    v-for="(item, index) in namespaceList"
+                    :key="index"
+                    :label="item.metadata.name"
+                    :value="item.metadata.name"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="副本数" prop="replicas" style="width: 90%">
+                <el-input-number
+                  v-model="createDeployment.replicas"
+                  :min="1"
+                  :max="10"
+                  style="width: 80%"
+                ></el-input-number>
+                <!-- 弹出框 -->
+                <!-- placement 消息出现的位置 -->
+                <!-- trigger 触发方式 hover表示悬停 -->
+                <!-- content 显示的内容，也可以通过写入默认 slot 修改显示内容 -->
+                <el-popover
+                  style="width: 20%"
+                  placement="top"
+                  :width="100"
+                  trigger="hover"
+                  content="申请副本数上限为10个"
+                >
+                  <template #reference>
+                    <el-icon style="width: 2em; font-size: 18px; color: #4795ee"
+                      ><WarningFilled
+                    /></el-icon>
+                  </template>
+                </el-popover>
+              </el-form-item>
+              <el-form-item
+                label="镜像"
+                prop="image"
+                class="deploy-create-form"
+              >
+                <el-input v-model="createDeployment.image"></el-input>
+              </el-form-item>
+              <el-form-item
+                label="标签"
+                prop="label_str"
+                class="deploy-create-form"
+              >
+                <!-- placeholder: 用来在输入框显示提示信息 -->
+                <el-input
+                  v-model="createDeployment.label_str"
+                  placeholder="示例: project=ms,app=gateway"
+                ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="资源配额"
+                prop="resource"
+                class="deploy-create-form"
+              >
+                <el-select
+                  v-model="createDeployment.resource"
+                  style="width: 100%"
+                  placeholder="cpu/mem"
+                >
+                  <el-option
+                    v-for="(data, i) in resources"
+                    :key="i"
+                    :label="data"
+                    :value="data"
+                  >
+                  </el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item
+                label="容器端口"
+                prop="container_port"
+                class="deploy-create-form"
+              >
+                <el-input
+                  v-model="createDeployment.container_port"
+                  placeholder="示例：80"
+                ></el-input>
+              </el-form-item>
+              <el-form-item label="健康检查" class="deploy-create-form">
+                <!-- el-switch 开关按钮 -->
+                <el-switch v-model="createDeployment.health_check" />
+              </el-form-item>
+              <el-form-item label="检查路径" class="deploy-create-form">
+                <el-input v-model="createDeployment.health_path"></el-input>
+              </el-form-item>
+            </el-form>
+          </el-col>
+        </el-row>
+      </template>
+      <template #footer>
+        <el-button @click="drawer = false">取消</el-button>
+        <el-button type="primary" @click="submitForm('createDeployment')"
+          >立即创建</el-button
+        >
+      </template>
+    </el-drawer>
+    <!-- yaml编辑器 -->
+    <el-dialog title="YAML信息" v-model="yamlDialog" width="45%" top="5%">
+      <!--:options 编辑器的配置  -->
+      <!-- @change 内容变化后会触发 -->
+      <codemirror
+        :value="contentYaml"
+        border
+        :options="cmOptions"
+        height="500"
+        style="font-size: 14px"
+        @change="onChange"
+      ></codemirror>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="yamlDialog = false">取 消</el-button>
+          <el-button type="primary" @click="updateDeployment()"
+            >更 新</el-button
+          >
+        </span>
+      </template>
+    </el-dialog>
+    <!-- 扩缩容弹出框 -->
+    <el-dialog title="副本数调整" v-model="scalestatus" width="25%" top="5%">
+      <el-row>
+        <el-col :span="24" style="display: flex; justify-content: center">
+          <span style="display: flex; align-items: center; font-size: 16px"
+            >实例数：</span
+          >
+          <el-input-number
+            v-model="num"
+            :min="0"
+            :max="10"
+            style="width: 50%"
+          ></el-input-number>
+        </el-col>
+      </el-row>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="scalestatus = false">取 消</el-button>
+          <el-button type="primary" @click="scaleDeployment">确 定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script>
 import common from "../common/Config";
 import httpClient from "../../utils/request";
-//import { formToJSON } from "axios";
-// import yaml2obj from "js-yaml";
-// import json2yaml from "json2yaml";
+import yaml2obj from "js-yaml";
+import json2yaml from "json2yaml";
 // 必须导入
-import JsonEditorVue from 'json-editor-vue3';
+//import JsonEditorVue from "json-editor-vue3";
+//import { codemirror } from "codemirror-editor-vue3";
 export default {
-  components: { JsonEditorVue },
+  //components: { codemirror },
   data() {
     return {
       namespaceValue: "default",
@@ -636,7 +616,7 @@ export default {
       //扩缩容
       scalestatus: false,
       num: 0,
-      scale_Name:'',
+      scale_Name: "",
       dialogVisible: false,
       scaleDeploymentData: {
         url: common.K8sScaleDeployment,
@@ -864,7 +844,7 @@ export default {
           });
         });
     },
-    
+
     //操作类提示框：重启、删除..
     handleConfirm(name, play, playFunc) {
       this.$confirm(
@@ -892,51 +872,57 @@ export default {
         });
     },
     //扩缩容之前获取到的当前deployment的副本数
-    getreplcanum(objnum,name){
-      this.scaleDeploymentData.params.name=name
-      this.scaleDeploymentData.params.namespace=this.namespaceValue
-      this.num=objnum
+    getreplcanum(objnum, name) {
+      this.scaleDeploymentData.params.name = name;
+      this.scaleDeploymentData.params.namespace = this.namespaceValue;
+      this.num = objnum;
     },
     //扩缩容deployment
-    scaleDeployment(){
-      this.scaleDeploymentData.params.replca=this.num
-      console.log("扩缩容的对象为：",this.scaleDeploymentData.params)
-      httpClient.put(this.scaleDeploymentData.url,this.scaleDeploymentData.params).then(res=>{
-        this.$message({
-          type:"success",
-          message:res.msg,
+    scaleDeployment() {
+      this.scaleDeploymentData.params.replca = this.num;
+      console.log("扩缩容的对象为：", this.scaleDeploymentData.params);
+      httpClient
+        .put(this.scaleDeploymentData.url, this.scaleDeploymentData.params)
+        .then((res) => {
+          this.$message({
+            type: "success",
+            message: res.msg,
+          });
+          this.getDeployments();
+          this.scalestatus = false;
+        })
+        .catch((res) => {
+          this.$message({
+            type: "info",
+            message: res.err,
+          });
+          this.scalestatus = false;
         });
-        this.getDeployments();
-        this.scalestatus=false;
-      }).catch(res=>{
-        this.$message({
-          type:"info",
-          message: res.err
-        });
-        this.scalestatus=false;
-      })
-     
     },
     //获取deployment详情
-    getDeploymentDetail(objName){
-      this.deploymentDetailData.params.name=objName;
-      this.deploymentDetailData.params.namespace=this.namespaceValue;
-      httpClient.get(this.deploymentDetailData.url,{
-        params: this.deploymentDetailData.params
-      }).then(res=>{
-        console.log("deployment详情为：",res.data)
-        this.deploymentDetail=res.data
-        this.yamlDialog=true
-      }).catch(res=>{
-        console.log("获取详情失败：",res.err)
-      })
+    getDeploymentDetail(objName) {
+      this.deploymentDetailData.params.name = objName;
+      this.deploymentDetailData.params.namespace = this.namespaceValue;
+      httpClient
+        .get(this.deploymentDetailData.url, {
+          params: this.deploymentDetailData.params,
+        })
+        .then((res) => {
+          console.log("deployment详情为：", res.data);
+          this.contentYaml = this.jsontoyaml(res.data);
+          this.yamlDialog = true;
+        })
+        .catch((res) => {
+          console.log("获取详情失败：", res.err);
+        });
     },
     //更新deployment
     updateDeployment() {
-      //console.log("详情为：",this.deploymentDetail)
       this.updateDeploymentData.params.namespace = this.namespaceValue;
-      // JSON.stringify: 将js对象转为json类型数据
-      this.updateDeploymentData.params.content = JSON.stringify(this.deploymentDetail);
+      // 先将yaml转为对象，再将对象通过JSON.stringify转为json类型数据
+      this.updateDeploymentData.params.content = JSON.stringify(
+        yaml2obj.load(this.contentYaml)
+      );
       httpClient
         .put(this.updateDeploymentData.url, this.updateDeploymentData.params)
         .then((res) => {
@@ -946,15 +932,27 @@ export default {
           });
           // 更新完yaml之后，获取最新的数据
           this.getDeployments();
-          this.yamlDialog=false;
+          this.yamlDialog = false;
         })
         .catch((res) => {
           this.$message({
             type: "info",
             message: name + res.err,
           });
-          this.yamlDialog=false
+          this.yamlDialog = false;
         });
+    },
+    //json转yaml
+    jsontoyaml(jsondata) {
+      return json2yaml.stringify(jsondata);
+    },
+    //yaml转对象
+    yamltoObj(yamldata) {
+      return yaml2obj.load(yaml2obj);
+    },
+    //yaml内容变化后调用,val不用传入，自动会获取更新后的yaml内容
+    onChange(val) {
+      this.contentYaml = val;
     },
   },
   //watch是一个选项对象，用于监听数据的变化。
