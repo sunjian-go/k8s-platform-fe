@@ -10,11 +10,12 @@ import App from "./App.vue";
 import router from "./router";
 
 //codemirror编辑器
-import { GlobalCmComponent } from "codemirror-editor-vue3";
+import  {GlobalCmComponent} from "codemirror-editor-vue3";
 // 引入主题 可以从 codemirror/theme/ 下引入多个
-import "codemirror/theme/idea.css";
-// 引入语言模式 可以从 codemirror/mode/ 下引入多个
-import "codemirror/mode/yaml/yaml.js";
+import "../node_modules/codemirror-editor-vue3/node_modules/codemirror/theme/idea.css";
+ // 引入语言模式 可以从 codemirror/mode/ 下引入多个
+import "../node_modules/codemirror-editor-vue3/node_modules/codemirror/mode/yaml/yaml.js";
+
 //创建vue实例
 const app = createApp(App);
 //将图标注册为全局组件

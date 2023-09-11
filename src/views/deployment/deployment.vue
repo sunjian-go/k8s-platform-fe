@@ -38,7 +38,7 @@
                 </div>
               </el-col>
               <!-- 刷新按钮 -->
-              <!-- :offset 指定该列在水平方向上的偏移量，即在左侧空出多少个网格单位的宽度。 -->
+              <!-- :offset 指定该列在水平方向上的偏移量，即在左侧空出多少个网格单位的宽度。 -->      'mysql_native_password
               <el-col :span="2" :offset="16">
                 <div>
                   <!-- plain：指定为朴素按钮 -->
@@ -247,6 +247,50 @@
                       >
                     </template>
                   </el-drawer>
+                  <!-- yaml编辑器 -->
+                  <el-dialog
+                      title="YAML信息"
+                      v-model="yamlDialog"
+                      width="45%"
+                      top="5%"
+                    >
+                      <JsonEditorVue
+                        style="height: 500px"
+                        v-model="deploymentDetail"
+                        :showBtns="false"
+                        :mode="'code'"
+                        lang="zh"
+                      ></JsonEditorVue>
+                      <template #footer>
+                        <span class="dialog-footer">
+                          <el-button @click="yamlDialog = false"
+                            >取 消</el-button
+                          >
+                          <el-button type="primary" @click="updateDeployment()"
+                            >更 新</el-button
+                          >
+                        </span>
+                      </template>
+                    </el-dialog>
+                    <!-- 扩缩容弹出框 -->
+                    <el-dialog title="扩缩容" v-model="scalestatus" width="25%" top="5%">
+                      <el-row>
+                        <el-col :span="24" style="display: flex;justify-content: center;">
+                          <el-input-number
+                                v-model="num"
+                                :min="0"
+                                :max="10"
+                                style="width: 80%;"
+                              ></el-input-number>
+                        </el-col>
+                      </el-row>
+                      <template #footer>
+                             <span class="dialog-footer">
+                                <el-button @click="scalestatus=false">取 消</el-button>
+                                 <el-button type="primary" @click="scaleDeployment">确 定</el-button>
+                             </span>
+                          </template>
+                    </el-dialog>
                 </div>
               </el-col>
               <!-- 输入框和搜索框 -->
@@ -299,9 +343,7 @@
               <el-table-column label="标签" align="left">
                 <template v-slot="scope">
                   <div
-                    v-for="(val, key) in scope.row.metadata.labels"
-                    :key="key"
-                  >
+                    v-for="(val, key) in scope.row.metadata.labels" :key="key">
                     <!-- :content="`${key}: ${val}`" 要想给参数赋值一个变量，必须前面用：绑定该变量才可以用 -->
                     <el-popover
                       style="width: 100%"
@@ -370,38 +412,14 @@
                       type="primary"
                       icon="Edit"
                       plain
-                      @click="yamlDialog = true"
+                      @click="getDeploymentDetail(scope.row.metadata.name),yamlDialog = true"
                       >YAML</el-button
                     >
-                    <!-- yaml编辑器 -->
-                    <el-dialog
-                      title="YAML信息"
-                      v-model="yamlDialog"
-                      width="45%"
-                      top="5%"
-                    >
-                      <JsonEditorVue
-                        style="height: 500px"
-                        v-model="deploymentDetail"
-                        :showBtns="false"
-                        :mode="'code'"
-                        lang="zh"
-                      />
-                      <template #footer>
-                        <span class="dialog-footer">
-                          <el-button @click="yamlDialog = false"
-                            >取 消</el-button
-                          >
-                          <el-button type="primary" @click="updateDeployment()"
-                            >更 新</el-button
-                          >
-                        </span>
-                      </template>
-                    </el-dialog>
+                    
                     <el-button
                       type="primary"
                       icon="Plus"
-                      @click="dialogVisible = true"
+                      @click="getreplcanum(scope.row.spec.replicas,scope.row.metadata.name),scalestatus = true"
                       >扩缩</el-button
                     >
                     <el-button
@@ -466,10 +484,13 @@
 <script>
 import common from "../common/Config";
 import httpClient from "../../utils/request";
-import { formToJSON } from "axios";
-import yaml2obj from "js-yaml";
-import json2yaml from "json2yaml";
+//import { formToJSON } from "axios";
+// import yaml2obj from "js-yaml";
+// import json2yaml from "json2yaml";
+// 必须导入
+import JsonEditorVue from 'json-editor-vue3';
 export default {
+  components: { JsonEditorVue },
   data() {
     return {
       namespaceValue: "default",
@@ -613,7 +634,9 @@ export default {
         },
       },
       //扩缩容
-      num: 2,
+      scalestatus: false,
+      num: 0,
+      scale_Name:'',
       dialogVisible: false,
       scaleDeploymentData: {
         url: common.K8sScaleDeployment,
@@ -817,7 +840,7 @@ export default {
           });
         });
     },
-    //删除
+    //删除deployment
     deleteDeployment(obj) {
       console.log("将删除：", obj, "namespace为：", this.namespaceValue);
       this.deleteDeploymentData.params.name = obj;
@@ -841,25 +864,7 @@ export default {
           });
         });
     },
-    //更新
-    updateDeployment() {
-      this.updateDeploymentData.params.namespace = this.namespaceValue;
-      this.updateDeploymentData.params.content = this.contentYaml;
-      httpClient
-        .put(this.updateDeploymentData.url, this.updateDeploymentData.params)
-        .then((res) => {
-          this.$message({
-            type: "success",
-            message: name + res.msg,
-          });
-        })
-        .catch((res) => {
-          this.$message({
-            type: "info",
-            message: name + res.err,
-          });
-        });
-    },
+    
     //操作类提示框：重启、删除..
     handleConfirm(name, play, playFunc) {
       this.$confirm(
@@ -884,6 +889,71 @@ export default {
             type: "info",
             message: "已取消" + play,
           });
+        });
+    },
+    //扩缩容之前获取到的当前deployment的副本数
+    getreplcanum(objnum,name){
+      this.scaleDeploymentData.params.name=name
+      this.scaleDeploymentData.params.namespace=this.namespaceValue
+      this.num=objnum
+    },
+    //扩缩容deployment
+    scaleDeployment(){
+      this.scaleDeploymentData.params.replca=this.num
+      console.log("扩缩容的对象为：",this.scaleDeploymentData.params)
+      httpClient.put(this.scaleDeploymentData.url,this.scaleDeploymentData.params).then(res=>{
+        this.$message({
+          type:"success",
+          message:res.msg,
+        });
+        this.getDeployments();
+        this.scalestatus=false;
+      }).catch(res=>{
+        this.$message({
+          type:"info",
+          message: res.err
+        });
+        this.scalestatus=false;
+      })
+     
+    },
+    //获取deployment详情
+    getDeploymentDetail(objName){
+      this.deploymentDetailData.params.name=objName;
+      this.deploymentDetailData.params.namespace=this.namespaceValue;
+      httpClient.get(this.deploymentDetailData.url,{
+        params: this.deploymentDetailData.params
+      }).then(res=>{
+        console.log("deployment详情为：",res.data)
+        this.deploymentDetail=res.data
+        this.yamlDialog=true
+      }).catch(res=>{
+        console.log("获取详情失败：",res.err)
+      })
+    },
+    //更新deployment
+    updateDeployment() {
+      //console.log("详情为：",this.deploymentDetail)
+      this.updateDeploymentData.params.namespace = this.namespaceValue;
+      // JSON.stringify: 将js对象转为json类型数据
+      this.updateDeploymentData.params.content = JSON.stringify(this.deploymentDetail);
+      httpClient
+        .put(this.updateDeploymentData.url, this.updateDeploymentData.params)
+        .then((res) => {
+          this.$message({
+            type: "success",
+            message: name + res.msg,
+          });
+          // 更新完yaml之后，获取最新的数据
+          this.getDeployments();
+          this.yamlDialog=false;
+        })
+        .catch((res) => {
+          this.$message({
+            type: "info",
+            message: name + res.err,
+          });
+          this.yamlDialog=false
         });
     },
   },
