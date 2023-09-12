@@ -6,6 +6,7 @@
       <el-col :span="24">
         <div>
           <!-- 包一层卡片 -->
+          <!-- shadow 属性设置卡片阴影出现的时机 -->
           <el-card
             class="deploy-head-card"
             shadow="never"
