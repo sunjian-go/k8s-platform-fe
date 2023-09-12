@@ -1,5 +1,7 @@
 export default {
+  //namespace
   k8sNamespaceList: "http://127.0.0.1:8999/api/corev1/getnamespaces",
+  //deployment
   K8sCreateDeployment: "http://127.0.0.1:8999/api/appsv1/createdeployment",
   K8sDeploymentList: "http://127.0.0.1:8999/api/appsv1/getdeployments",
   K8sDeploymentDetail: "http://127.0.0.1:8999/api/appsv1/getdeploymentdetail",
@@ -9,6 +11,8 @@ export default {
   K8sUpdateDeployment: "http://127.0.0.1:8999/api/appsv1/updatedeployment",
   K8sGetNamespaceDeploymentNum:
     "http://127.0.0.1:8999/api/appsv1/getnamespacedeployNum",
+  //pod
+  K8sGetPodList: "http://127.0.0.1:8999/api/corev1/getpods",
 
   //编辑器配置
   cmOptions: {

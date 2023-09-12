@@ -1,14 +1,6 @@
 import { def } from "@vue/shared";
 import axios from "axios";
 
-// axios
-//   .get("http://127.0.0.1:8999/api/corev1/getnamespaces")
-//   .then((res) => {
-//     console.log("axios获取到为：" + res.data.items);
-//   })
-//   .catch((res) => {
-//     console.log("axios报错为：" + res);
-//   });
 //新建axios对象
 const httpClient = axios.create({
   validateStatus(status) {
