@@ -133,6 +133,7 @@
                     :key="key"
                   >
                     <!-- :content="`${key}: ${val}`" 要想给参数赋值一个变量，必须前面用：绑定该变量才可以用 -->
+                    <!-- el-popover: 弹出框 -->
                     <el-popover
                       style="width: 100%"
                       placement="top"
