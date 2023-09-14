@@ -13,6 +13,12 @@ export default {
     "http://127.0.0.1:8999/api/appsv1/getnamespacedeployNum",
   //pod
   K8sGetPodList: "http://127.0.0.1:8999/api/corev1/getpods",
+  K8sGetPodDetail: "http://127.0.0.1:8999/api/corev1/podetail",
+  K8sDeletePod: "http://127.0.0.1:8999/api/corev1/deletepod",
+  K8sUpdatePod: "http://127.0.0.1:8999/api/corev1/updatepod",
+  K8sGetContainers: "http://127.0.0.1:8999/api/corev1/getcontainers",
+  K8sGetPodLog: "http://127.0.0.1:8999/api/corev1/getlog",
+  K8sGetPodNum: "http://127.0.0.1:8999/api/corev1/getpodnum",
 
   //编辑器配置
   cmOptions: {

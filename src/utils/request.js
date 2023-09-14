@@ -28,6 +28,7 @@ httpClient.interceptors.request.use(
         config.data = {};
       }
     }
+    console.log("请求: ", config.data);
     return config;
   },
   (err) => {

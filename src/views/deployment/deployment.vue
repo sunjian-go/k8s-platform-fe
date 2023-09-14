@@ -60,11 +60,11 @@
       <el-col :span="24">
         <div>
           <el-card
-            shadow="nerver"
+            shadow="never"
             body-style="{padding:'10px'}"
             class="deploy-body-card"
           >
-            <el-row gutter="15">
+            <el-row :gutter="15">
               <!-- 创建按钮 -->
               <el-col :span="1.5" style="margin-left: -10px">
                 <div>
@@ -104,7 +104,7 @@
       <el-col :span="24">
         <div>
           <el-card
-            shadow="nerver"
+            shadow="never"
             body-style="{padding:'10px'}"
             class="deploy-body-card"
           >
@@ -250,7 +250,7 @@
             </el-table>
           </el-card>
         </div>
-        <div class="demo-pagination-block">
+        <div>
           <!-- 分页 -->
           <!-- current-page：当前页，跟后端page一致 -->
           <!-- page-size：单页大小，跟后端limit一致 -->
@@ -475,7 +475,7 @@ export default {
   //components: { codemirror },
   data() {
     return {
-      namespaceValue: "default",
+      namespaceValue: "",
       namespaceList: [],
       namespaceListUrl: common.k8sNamespaceList,
       input: "",
@@ -775,7 +775,8 @@ export default {
     },
     //刷新页面的时候将namespace置为默认值
     resetNamespace() {
-      this.namespaceValue = "default";
+      this.namespaceValue = "";
+      this.input = "";
     },
     //labels显示长度限制
     ellipsis(labels) {

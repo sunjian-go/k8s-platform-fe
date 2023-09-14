@@ -17,7 +17,7 @@
                   <el-select
                     v-model="namespaceValue"
                     placeholder="请选择"
-                    filterable="true"
+                    :filterable="true"
                   >
                     <el-option
                       v-for="(scope, i) in namespaceList"
@@ -50,61 +50,66 @@
                     <span>{{ scope.row.metadata.name }}</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="标签" align="left">
+                <el-table-column label="节点" align="center">
                   <template v-slot="scope">
-                    <div
-                      v-for="(label, i) in scope.row.metadata.labels"
-                      :key="i"
-                    >
-                      <el-popover
-                        placement="top-start"
-                        :width="400"
-                        trigger="hover"
-                        :content="`${i}: ${label}`"
-                      >
-                        <template #reference>
-                          <el-tag type="warning"
-                            >{{ i }}: {{ ellipsis(label) }}</el-tag
-                          >
-                        </template>
-                      </el-popover>
-                    </div>
+                    <el-tag>{{ scope.row.spec.nodeName }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="容器组" align="left">
+                <el-table-column label="状态" align="center">
                   <template v-slot="scope">
-                    <div
-                      v-for="(container, i) in scope.row.spec.containers"
-                      :key="i"
+                    <el-tag
+                      type="success"
+                      v-if="scope.row.status.phase == 'Running'"
+                      >{{ scope.row.status.phase }}</el-tag
                     >
-                      <span>{{ container.name }}</span>
-                    </div>
+                    <el-tag
+                      type="warning"
+                      v-else-if="scope.row.status.phase == 'Pending'"
+                      >{{ scope.row.status.phase }}</el-tag
+                    >
+                    <el-tag
+                      type="delete"
+                      v-else-if="
+                        scope.row.status.phase != 'Pending' || 'Running'
+                      "
+                      >{{ scope.row.status.phase }}</el-tag
+                    >
                   </template>
                 </el-table-column>
-                <el-table-column label="创建时间" align="left">
+                <el-table-column label="重启数" align="center">
+                  <template v-slot="scope">
+                    <span>{{ getPodRestartNum(scope.row) }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="创建时间" align="center">
                   <template v-slot="scope">
                     <span>{{
                       timeTrans(scope.row.metadata.creationTimestamp)
                     }}</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="镜像" align="left">
+                <el-table-column label="操作" align="center" width="200">
                   <template v-slot="scope">
-                    <div
-                      v-for="(container, i) in scope.row.spec.containers"
-                      :key="i"
-                    >
-                      <el-tag>{{ container.image }}</el-tag>
-                    </div>
+                    <el-row :gutter="100">
+                      <el-col :span="4">
+                        <el-button
+                          type="primary"
+                          icon="Edit"
+                          plain
+                          @click="
+                            getPodDetail(scope.row.metadata.name),
+                              (yamlDialog = true)
+                          "
+                          >YAML</el-button
+                        >
+                      </el-col>
+                      <el-col :span="4">
+                        <el-button type="danger" icon="Delete">删除</el-button>
+                      </el-col>
+                    </el-row>
                   </template>
                 </el-table-column>
-                <el-table-column label="状态" align="left">
-                  <template v-slot="scope">
-                    <el-tag class="ml-2" type="success">{{
-                      scope.row.status.phase
-                    }}</el-tag>
-                  </template>
-                </el-table-column>
+
                 <el-table-column>
                   <template #header>
                     <el-row :gutter="150">
@@ -130,14 +135,59 @@
       </el-col>
     </el-row>
   </div>
+  <div>
+    <!-- 分页 -->
+    <!-- current-page：当前页，跟后端page一致 -->
+    <!-- page-size：单页大小，跟后端limit一致 -->
+    <!-- :small：一个布尔值，用于控制分页组件的大小，如果设为true，则显示为小号组件。 -->
+    <!-- :disabled：一个布尔值，用于禁用分页组件，如果设为true，则分页组件为禁用状态，用户无法进行翻页操作。 -->
+    <!-- :background：一个布尔值，用于控制分页组件的背景颜色，如果设为true，则分页组件的背景为灰色。   -->
+    <!-- layout：分页的布局，带有什么功能 -->
+    <!-- :total：指定总共有多少条数据，用于计算总共有多少页。 -->
+    <!-- size-change：单页大小改变后触发 -->
+    <!-- current-change：页数改变后触发 -->
+    <el-pagination
+      :current-page="currentPage"
+      :page-size="pagesize"
+      :page-sizes="pageList"
+      :small="small"
+      :disabled="disabled"
+      :background="background"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="podTotal"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+    />
+  </div>
+  <!-- yaml编辑器 -->
+  <el-dialog title="YAML信息" v-model="yamlDialog" width="45%" top="5%">
+    <!--:options 编辑器的配置  -->
+    <!-- @change 内容变化后会触发 -->
+    <codemirror
+      :value="contentYaml"
+      border
+      :options="cmOptions"
+      height="500"
+      style="font-size: 14px"
+      @change="onChange"
+    ></codemirror>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="yamlDialog = false">取 消</el-button>
+        <el-button type="primary" @click="updatePod()">更 新</el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 <script>
 import common from "../common/Config";
 import httpClient from "../../utils/request";
+import yaml2obj from "js-yaml";
+import json2yaml from "json2yaml";
 export default {
   data() {
     return {
-      namespaceValue: "default",
+      namespaceValue: "",
       namespaceList: [],
       getNamespaceData: {
         url: common.k8sNamespaceList,
@@ -145,8 +195,6 @@ export default {
       //搜索
       searchValue: "",
       //获取pod列表
-      currentPage: 1,
-      pagesize: 10,
       podList: [],
       getPodListData: {
         url: common.K8sGetPodList,
@@ -157,7 +205,47 @@ export default {
           page: 0,
         },
       },
+      //分页
+      currentPage: 1,
+      pagesize: 10,
+      small: true,
+      pageList: [10, 20, 30, 40],
+      podTotal: 0,
+      disabled: false,
+      background: true,
+      //yaml编辑器
+      yamlDialog: false,
+      contentYaml: "",
+      cmOptions: common.cmOptions,
+      //获取pod详情
+      getPodDetailData: {
+        url: common.K8sGetPodDetail,
+        params: {
+          name: "",
+          namespace: "",
+        },
+      },
+      //更新pod
+      updatePodData: {
+        url: common.K8sUpdatePod,
+        params: {
+          namespace: "",
+          context: "",
+        },
+      },
     };
+  },
+  beforeMount() {
+    //加载页面时先获取localStorage中的namespace值，若获取不到则默认default，放在下拉框第一位显示
+    if (
+      localStorage.getItem("namespace") !== "undefined" &&
+      localStorage.getItem("namespace") !== null
+    ) {
+      this.namespaceValue = localStorage.getItem("namespace");
+    }
+    this.getPodNamespace();
+    this.getPodList();
+    console.log("hello world");
   },
   methods: {
     //获取namespace
@@ -185,6 +273,7 @@ export default {
         .then((res) => {
           console.log("获取pod列表为: ", res.data);
           this.podList = res.data.items;
+          this.podTotal = res.data.total;
         })
         .catch((res) => {
           console.log("报错为：", res.err);
@@ -207,6 +296,78 @@ export default {
       // 判断lables的长度是否大于15，为true则0-20位正常显示，之后的显示...，为false则直接返回值
       return labels.length > 15 ? labels.substring(0, 20) + "..." : labels;
     },
+    //分页
+    handleSizeChange(size) {
+      console.log(`每页 ${size} 条`);
+      this.pagesize = size;
+      this.getPodList();
+    },
+    handleCurrentChange(page) {
+      console.log("当前页: ", page);
+      this.currentPage = page;
+      this.getPodList();
+    },
+    //计算重启次数（所有容器重启次数总和）
+    getPodRestartNum(podRestarts) {
+      let num = 0;
+      let i = 0;
+      let restarts = podRestarts.status.containerStatuses;
+      for (i in restarts) {
+        num = num + restarts[i].restartCount;
+      }
+      //console.log("pod重启次数为：", num);
+      return num;
+    },
+    //yaml
+    onChange(yaml) {
+      this.contentYaml = yaml;
+      console.log("修改后的为：", this.contentYaml);
+    },
+    //更新
+    updatePod() {
+      this.updatePodData.params.namespace = this.namespaceValue;
+      this.updatePodData.params.context = JSON.stringify(
+        yaml2obj.load(this.contentYaml)
+      );
+      console.log("修改后为：", this.updatePodData.params.context);
+      httpClient
+        .put(this.updatePodData.url, this.updatePodData.params)
+        .then((res) => {
+          this.$message({
+            type: "success",
+            message: name + res.msg,
+          });
+        })
+        .catch((res) => {
+          this.$message({
+            type: "info",
+            message: name + res.err,
+          });
+        });
+    },
+    //获取pod详情
+    getPodDetail(e) {
+      this.getPodDetailData.params.name = e;
+      this.getPodDetailData.params.namespace = this.namespaceValue;
+      console.log("传进来的的为：", this.getPodDetailData.params);
+      httpClient
+        .get(this.getPodDetailData.url, this.getPodDetailData)
+        .then((res) => {
+          console.log("pod详情为：", res.data);
+          this.contentYaml = this.jsontoyaml(res.data);
+        })
+        .catch((res) => {
+          console.log("报错为：", res.err);
+        });
+    },
+    //json转yaml
+    jsontoyaml(jsondata) {
+      return json2yaml.stringify(jsondata);
+    },
+    //yaml转对象
+    yamltoObj(yamldata) {
+      return yaml2obj.load(yaml2obj);
+    },
   },
   watch: {
     //监听namespace的值,若发生变化，则执行handler方法中的内容
@@ -219,10 +380,6 @@ export default {
         this.getPodList();
       },
     },
-  },
-  beforeMount() {
-    this.getPodNamespace();
-    this.getPodList();
   },
 };
 </script>
