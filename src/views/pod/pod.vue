@@ -104,7 +104,7 @@
                         >
                       </el-col>
                       <el-col :span="4">
-                        <el-button type="danger" icon="Delete">删除</el-button>
+                        <el-button type="danger" icon="Delete" @click="handleConfirm(scope.row.metadata.name,'删除',deletePod)">删除</el-button>
                       </el-col>
                     </el-row>
                   </template>
@@ -233,6 +233,14 @@ export default {
           context: "",
         },
       },
+      //删除pod
+      deletePodData:{
+        url: common.K8sDeletePod,
+        params:{
+          name:'',
+          namespace:'',
+        },
+      },
     };
   },
   beforeMount() {
@@ -248,6 +256,32 @@ export default {
     console.log("hello world");
   },
   methods: {
+    //操作类提示框：重启、删除..
+    handleConfirm(name, play, playFunc) {
+      this.$confirm(
+        "确认继续" + play + "Pod [" + name + "] 操作吗？",
+        "提示",
+        {
+          confirmButtonText: "确定",
+          cancelButtonText: "取消",
+          type: "warning",
+          center: true,
+        }
+      )
+        .then(() => {
+          playFunc(name);
+          this.$message({
+            type: "success",
+            message: name + "已" + play,
+          });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消" + play,
+          });
+        });
+    },
     //获取namespace
     getPodNamespace() {
       httpClient
@@ -325,25 +359,28 @@ export default {
     },
     //更新
     updatePod() {
+      //console.log("修改后为：", JSON.stringify(yaml2obj.load(this.contentYaml)));
       this.updatePodData.params.namespace = this.namespaceValue;
       this.updatePodData.params.context = JSON.stringify(
         yaml2obj.load(this.contentYaml)
       );
-      console.log("修改后为：", this.updatePodData.params.context);
-      httpClient
-        .put(this.updatePodData.url, this.updatePodData.params)
-        .then((res) => {
-          this.$message({
+      
+      httpClient.put(this.updatePodData.url,this.updatePodData.params).then(res=>{
+        this.$message({
             type: "success",
             message: name + res.msg,
           });
-        })
-        .catch((res) => {
-          this.$message({
+          this.getPodList();
+          this.yamlDialog=false;
+          
+      }).catch(res=>{
+        this.$message({
             type: "info",
             message: name + res.err,
           });
-        });
+          this.getPodList();
+          this.yamlDialog=false;
+      })
     },
     //获取pod详情
     getPodDetail(e) {
@@ -353,12 +390,31 @@ export default {
       httpClient
         .get(this.getPodDetailData.url, this.getPodDetailData)
         .then((res) => {
-          console.log("pod详情为：", res.data);
+          //console.log("pod详情为：", res.data);
           this.contentYaml = this.jsontoyaml(res.data);
+          // console.log("pod详情为：", this.contentYaml);
         })
         .catch((res) => {
           console.log("报错为：", res.err);
         });
+    },
+    //删除pod
+    deletePod(podName){
+      this.deletePodData.params.name=podName,
+      this.deletePodData.params.namespace=this.namespaceValue,
+      httpClient.delete(this.deletePodData.url,{params:this.deletePodData.params}).then(res=>{
+        this.$message({
+            type: "success",
+            message: name + res.msg,
+          });
+          this.getPodList();
+      }).catch(res=>{
+        this.$message({
+            type: "error",
+            message: name + res.err,
+          });
+          this.getPodList()
+      })
     },
     //json转yaml
     jsontoyaml(jsondata) {
