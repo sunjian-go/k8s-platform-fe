@@ -43,11 +43,118 @@
         <div>
           <el-card shadow="never" :body-style="{ padding: '10px' }">
             <div>
-              <el-table :data="podList" style="width: 100%">
+              <!-- row-key 用来定义行数据的key，结合expand-row-keys使用，往expandKeys中增加key来展开行 ,getRowKeys方法里面自带一个参数代表当前行对象-->
+              <!-- expand-row-keys 展开的行的key数组,只有在 expand-row-keys 中的行才会被默认展开 -->
+              <!-- expand-change 展开触发时，调用这个方法;该方法自动传入两个参数，分别是当前行对象，和当前展开行的数组 ，属于原生功能-->
+              <el-table
+                :data="podList"
+                style="width: 100%"
+                v-loading="apploading"
+                :row-key="getRowKeys"
+                :expand-row-keys="expandKeys"
+                @expand-change="expandChange"
+              >
                 <el-table-column width="20" />
+                <!-- 展开框 -->
+                <el-table-column type="expand">
+                  <!-- 插槽，里面是展开的内容,scope标识展开的行的数据 -->
+                  <template #default="props">
+                    <el-tabs v-model="activeName" type="card">
+                      <!-- tab容器标签页 -->
+                      <el-tab-pane label="容器" name="container">
+                        <el-card shadow="never">
+                          <el-table
+                            :data="props.row.spec.containers"
+                            style="width: 100%"
+                          >
+                            <el-table-column label="容器名">
+                              <template v-slot="data">
+                                <span>{{ data.row.name }}</span>
+                              </template>
+                            </el-table-column>
+                            <el-table-column label="镜像" align="center">
+                              <template v-slot="data">
+                                <span>{{ data.row.image }}</span>
+                              </template>
+                            </el-table-column>
+                            <el-table-column label="Pod IP" align="center">
+                              <!-- 可以直接用父template的值 -->
+                              {{ props.row.status.podIP }}
+                            </el-table-column>
+                            <el-table-column label="启动命令" align="center">
+                              <template v-slot="data">
+                                <span>{{ data.row.command }}</span>
+                              </template>
+                            </el-table-column>
+                            <el-table-column label="环境变量" align="left">
+                              <template v-slot="data">
+                                <div
+                                  v-for="(val, key) in data.row.env"
+                                  :key="key"
+                                >
+                                  <span>{{ val.name }}: {{ val.value }}</span>
+                                </div>
+                              </template>
+                            </el-table-column>
+                          </el-table>
+                        </el-card>
+                      </el-tab-pane>
+                      <!-- tab日志标签页 -->
+                      <el-tab-pane label="日志" name="log">
+                        <el-card :body-style="{ padding: '5px' }">
+                          <el-row :gutter="5">
+                            <el-col :span="3"
+                              ><el-select
+                                v-model="containerName"
+                                placeholder="请选择"
+                              >
+                                <el-option
+                                  v-for="(val, key) in containerList"
+                                  :key="key"
+                                  :label="val"
+                                  :value="val"
+                                  :disabled="false"
+                                />
+                              </el-select>
+                            </el-col>
+                            <el-col :span="2">
+                              <el-button
+                                type="primary"
+                                @click="
+                                  getContainerLog(props.row.metadata.name)
+                                "
+                                >查看</el-button
+                              >
+                            </el-col>
+                            <el-col :span="24">
+                              <el-card shadow="never" class="log-card">
+                                <el-scrollbar height="400px">
+                                  <span style="white-space: pre-line">{{
+                                    containerLog
+                                  }}</span>
+                                </el-scrollbar>
+                              </el-card>
+                            </el-col>
+                          </el-row>
+                        </el-card>
+                      </el-tab-pane>
+                      <!-- tab终端标签页 -->
+                      <el-tab-pane label="终端" name="shell"></el-tab-pane>
+                    </el-tabs>
+                  </template>
+                </el-table-column>
                 <el-table-column label="Pod" align="left">
                   <template v-slot="scope">
-                    <span>{{ scope.row.metadata.name }}</span>
+                    <span
+                      style="color: rgb(62, 165, 233)"
+                      class="deploy-body-deployname"
+                      @click="
+                        expandStatus
+                          ? expandChange(scope.row, [])
+                          : expandChange(scope.row, [scope.row])
+                      "
+                      >{{ scope.row.metadata.name }}</span
+                    >
                   </template>
                 </el-table-column>
                 <el-table-column label="节点" align="center">
@@ -104,7 +211,18 @@
                         >
                       </el-col>
                       <el-col :span="4">
-                        <el-button type="danger" icon="Delete" @click="handleConfirm(scope.row.metadata.name,'删除',deletePod)">删除</el-button>
+                        <el-button
+                          type="danger"
+                          icon="Delete"
+                          @click="
+                            handleConfirm(
+                              scope.row.metadata.name,
+                              '删除',
+                              deletePod
+                            )
+                          "
+                          >删除</el-button
+                        >
                       </el-col>
                     </el-row>
                   </template>
@@ -172,7 +290,7 @@
       @change="onChange"
     ></codemirror>
     <template #footer>
-      <span class="dialog-footer">
+      <span>
         <el-button @click="yamlDialog = false">取 消</el-button>
         <el-button type="primary" @click="updatePod()">更 新</el-button>
       </span>
@@ -187,6 +305,7 @@ import json2yaml from "json2yaml";
 export default {
   data() {
     return {
+      apploading: true,
       namespaceValue: "",
       namespaceList: [],
       getNamespaceData: {
@@ -234,13 +353,40 @@ export default {
         },
       },
       //删除pod
-      deletePodData:{
+      deletePodData: {
         url: common.K8sDeletePod,
-        params:{
-          name:'',
-          namespace:'',
+        params: {
+          name: "",
+          namespace: "",
         },
       },
+      //展开框
+      //expand扩展
+      activeName: "container",
+      expandKeys: [],
+      //打开状态码
+      expandStatus: false,
+      //获取container列表
+      containerList: [],
+      getContainersData: {
+        url: common.K8sGetContainers,
+        params: {
+          name: "",
+          namespace: "",
+        },
+      },
+      //获取container日志
+      containerName: "",
+      containerLog: "",
+      getContainerLogData: {
+        url: common.K8sGetContainerLog,
+        params: {
+          container: "",
+          podname: "",
+          namespace: "",
+        },
+      },
+      timer: 0,
     };
   },
   beforeMount() {
@@ -253,21 +399,20 @@ export default {
     }
     this.getPodNamespace();
     this.getPodList();
-    console.log("hello world");
   },
   methods: {
+    //测试
+    gettest(pod) {
+      console.log("打印 ", pod, this.containerName);
+    },
     //操作类提示框：重启、删除..
     handleConfirm(name, play, playFunc) {
-      this.$confirm(
-        "确认继续" + play + "Pod [" + name + "] 操作吗？",
-        "提示",
-        {
-          confirmButtonText: "确定",
-          cancelButtonText: "取消",
-          type: "warning",
-          center: true,
-        }
-      )
+      this.$confirm("确认继续" + play + "Pod [" + name + "] 操作吗？", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+        center: true,
+      })
         .then(() => {
           playFunc(name);
           this.$message({
@@ -308,9 +453,11 @@ export default {
           console.log("获取pod列表为: ", res.data);
           this.podList = res.data.items;
           this.podTotal = res.data.total;
+          this.apploading = false;
         })
         .catch((res) => {
           console.log("报错为：", res.err);
+          this.apploading = false;
         });
     },
     //刷新按钮
@@ -364,23 +511,25 @@ export default {
       this.updatePodData.params.context = JSON.stringify(
         yaml2obj.load(this.contentYaml)
       );
-      
-      httpClient.put(this.updatePodData.url,this.updatePodData.params).then(res=>{
-        this.$message({
+
+      httpClient
+        .put(this.updatePodData.url, this.updatePodData.params)
+        .then((res) => {
+          this.$message({
             type: "success",
             message: name + res.msg,
           });
           this.getPodList();
-          this.yamlDialog=false;
-          
-      }).catch(res=>{
-        this.$message({
+          this.yamlDialog = false;
+        })
+        .catch((res) => {
+          this.$message({
             type: "info",
             message: name + res.err,
           });
           this.getPodList();
-          this.yamlDialog=false;
-      })
+          this.yamlDialog = false;
+        });
     },
     //获取pod详情
     getPodDetail(e) {
@@ -399,22 +548,25 @@ export default {
         });
     },
     //删除pod
-    deletePod(podName){
-      this.deletePodData.params.name=podName,
-      this.deletePodData.params.namespace=this.namespaceValue,
-      httpClient.delete(this.deletePodData.url,{params:this.deletePodData.params}).then(res=>{
-        this.$message({
-            type: "success",
-            message: name + res.msg,
+    deletePod(podName) {
+      (this.deletePodData.params.name = podName),
+        (this.deletePodData.params.namespace = this.namespaceValue),
+        httpClient
+          .delete(this.deletePodData.url, { params: this.deletePodData.params })
+          .then((res) => {
+            this.$message({
+              type: "success",
+              message: name + res.msg,
+            });
+            this.getPodList();
+          })
+          .catch((res) => {
+            this.$message({
+              type: "error",
+              message: name + res.err,
+            });
+            this.getPodList();
           });
-          this.getPodList();
-      }).catch(res=>{
-        this.$message({
-            type: "error",
-            message: name + res.err,
-          });
-          this.getPodList()
-      })
     },
     //json转yaml
     jsontoyaml(jsondata) {
@@ -423,6 +575,90 @@ export default {
     //yaml转对象
     yamltoObj(yamldata) {
       return yaml2obj.load(yaml2obj);
+    },
+    //展开和关闭
+    getRowKeys(rows) {
+      return rows.metadata.name;
+    },
+    //连接websocket
+    connectWebSocket() {
+      var socket = new WebSocket("ws://127.0.0.1:8081/ws");
+      socket.onopen = () => {
+        console.log("websocket连接已建立");
+      };
+    },
+    //展开框触发方法
+    // 当点击展开的时候，会自动传一个数组进来，里面存放的是当前展开行的name,判断该数组是否为空即可知道展开框是打开还是关闭的状态，根据此特性可以拓展功能
+    expandChange(row, expandedRows) {
+      //this.connectWebSocket();
+      this.containerLog = "";
+      this.containerName = "";
+      this.activeName = "container"; //每次切换的时候都显示container
+      //初始化变量
+      //清空expandKeys，代表关闭所有展开的行
+      this.expandKeys = [];
+
+      //判断是展开还是关闭
+      // expandedRows是用来判断展开与否的数组，里面只存一个变量，就是当前展开的当前行的name，自动加进去的
+      if (expandedRows.length > 0) {
+        //如果当前是展开状态，就去标记状态码是打开状态，用于点击pod名字的时候使用
+        this.expandStatus = true;
+        //真正的展开这一行
+        this.expandKeys.push(row.metadata.name); //将当前行的name添加到真正的展开数组里
+        //展开之后取获取容器列表
+        this.getContainers(row.metadata.name);
+      } else {
+        //如果当前是关闭状态，就去标记状态码是关闭状态
+        this.expandStatus = false;
+        //this.containerName = "";
+        // 停止 setInterval 的执行
+        clearInterval(this.timer);
+      }
+    },
+    //获取container列表
+    getContainers(podName) {
+      this.getContainersData.params.name = podName;
+      this.getContainersData.params.namespace = this.namespaceValue;
+      console.log("1.准备获取容器列表为：", this.getContainersData.params);
+      httpClient
+        .get(this.getContainersData.url, {
+          params: this.getContainersData.params,
+        })
+        .then((res) => {
+          this.containerList = res.data;
+          this.containerName = this.containerList[0];
+          console.log("2.获取到容器信息为：", this.containerName);
+          //当获取容器信息成功时才实时获取该容器日志
+          this.timer = setInterval(() => {
+            this.getContainerLog(podName);
+          }, 700);
+        })
+        .catch((res) => {
+          console.log("获取容器信息报错为：", res.err);
+          this.$message({
+            type: "error",
+            message: res.err,
+          });
+          this.containerName = "";
+        });
+    },
+    //获取container日志
+    getContainerLog(podName) {
+      console.log("开始获取日志");
+      this.getContainerLogData.params.container = this.containerName;
+      this.getContainerLogData.params.podname = podName;
+      this.getContainerLogData.params.namespace = this.namespaceValue;
+      httpClient
+        .get(this.getContainerLogData.url, {
+          params: this.getContainerLogData.params,
+        })
+        .then((res) => {
+          console.log("获取到日志为：", res.data);
+          this.containerLog = res.data;
+        })
+        .catch((res) => {
+          console.log("获取日志报错为：", res.err);
+        });
     },
   },
   watch: {
@@ -443,5 +679,16 @@ export default {
 .row-col-card {
   margin-bottom: 5px;
   height: 10%;
+}
+.deploy-body-deployname:hover {
+  color: rgb(84, 138, 238);
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 15px;
+}
+.log-card {
+  background-color: black;
+  color: aliceblue;
+  padding: 5px;
 }
 </style>

@@ -111,6 +111,7 @@
             <el-table
               :data="deploymentList"
               style="width: 100%; fint-size: 12px"
+              v-loading="appLoading"
             >
               <!-- 此空列相当于第一列前面的占位符，为了美观 -->
               <el-table-column width="20" />
@@ -560,7 +561,7 @@ export default {
       },
       //列表
       deploymentList: [],
-      apploading: false,
+      appLoading: true,
       deploymentTotal: 0,
       getDeploymentData: {
         url: common.K8sDeploymentList,
@@ -657,7 +658,6 @@ export default {
     },
     //获取deployment列表
     getDeployments() {
-      this.apploading = true;
       // 组装过滤条件
       this.getDeploymentData.params.name = this.input;
       this.getDeploymentData.params.namespace = this.namespaceValue;
@@ -678,15 +678,15 @@ export default {
             console.log("获取到：", data);
           });
           // console.log("获取到：", res.data.items.metadata);
+          this.appLoading = false;
         })
         .catch((res) => {
           this.$message.error({
             message: res.msg,
           });
           console.log("报错为：", res);
+          this.appLoading = false;
         });
-
-      this.appLoading = false;
     },
     //创建deployment对象
     createDeployFunc() {
@@ -1004,10 +1004,10 @@ export default {
   margin-bottom: 5px;
 }
 
-.deploy-body-deployname {
-  color: #4795ee;
-}
 /* deployment鼠标悬停 */
+/* :hover：这是一个伪类选择器，表示当鼠标悬停在元素上时应用样式。
+color: rgb(84, 138, 238);：这行代码将文本颜色设置为RGB值为(84, 138, 238)的蓝色。换句话说，当鼠标悬停在元素上时，元素的文本颜色将变为蓝色。
+cursor: pointer;：这行代码将鼠标指针的样式设置为指针形状，表示该元素可以被点击或具有交互性。 */
 .deploy-body-deployname:hover {
   color: rgb(84, 138, 238);
   cursor: pointer;

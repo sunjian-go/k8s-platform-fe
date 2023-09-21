@@ -17,7 +17,7 @@ export default {
   K8sDeletePod: "http://127.0.0.1:8999/api/corev1/deletepod",
   K8sUpdatePod: "http://127.0.0.1:8999/api/corev1/updatepod",
   K8sGetContainers: "http://127.0.0.1:8999/api/corev1/getcontainers",
-  K8sGetPodLog: "http://127.0.0.1:8999/api/corev1/getlog",
+  K8sGetContainerLog: "http://127.0.0.1:8999/api/corev1/getlog",
   K8sGetPodNum: "http://127.0.0.1:8999/api/corev1/getpodnum",
 
   //编辑器配置
