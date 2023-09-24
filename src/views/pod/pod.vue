@@ -118,20 +118,26 @@
                               </el-select>
                             </el-col>
                             <el-col :span="2">
-                              <el-button
+                              <!-- <el-button
                                 type="primary"
                                 @click="
                                   getContainerLog(props.row.metadata.name)
                                 "
                                 >查看</el-button
-                              >
+                              > -->
                             </el-col>
                             <el-col :span="24">
                               <el-card shadow="never" class="log-card">
-                                <el-scrollbar height="400px">
-                                  <span style="white-space: pre-line">{{
-                                    containerLog
-                                  }}</span>
+                                <el-scrollbar
+                                  ref="scrollbarRef"
+                                  always
+                                  height="400px"
+                                >
+                                  <span
+                                    style="white-space: pre-line"
+                                    ref="innerRef"
+                                    >{{ containerLog }}</span
+                                  >
                                 </el-scrollbar>
                               </el-card>
                             </el-col>
@@ -377,6 +383,7 @@ export default {
       },
       //获取container日志
       containerName: "",
+      containerValue: "",
       containerLog: "",
       getContainerLogData: {
         url: common.K8sGetContainerLog,
@@ -592,6 +599,7 @@ export default {
     expandChange(row, expandedRows) {
       //this.connectWebSocket();
       this.containerLog = "";
+      this.containerValue = "";
       this.containerName = "";
       this.activeName = "container"; //每次切换的时候都显示container
       //初始化变量
@@ -632,6 +640,7 @@ export default {
           this.timer = setInterval(() => {
             this.getContainerLog(podName);
           }, 700);
+          //this.getContainerLog(podName);
         })
         .catch((res) => {
           console.log("获取容器信息报错为：", res.err);
@@ -644,7 +653,6 @@ export default {
     },
     //获取container日志
     getContainerLog(podName) {
-      console.log("开始获取日志");
       this.getContainerLogData.params.container = this.containerName;
       this.getContainerLogData.params.podname = podName;
       this.getContainerLogData.params.namespace = this.namespaceValue;
