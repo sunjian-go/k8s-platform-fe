@@ -127,16 +127,15 @@
                             <el-col :span="24">
                               <el-card shadow="never" class="log-card">
                                 <el-scrollbar
-                                  ref="scrollbarRef"
                                   always
                                   height="400px"
+                                  noresize="Boolean"
                                 >
-                                  <span
-                                    style="white-space: pre-line"
-                                    ref="innerRef"
-                                    >{{ containerLog }}</span
-                                  >
+                                  <span style="white-space: pre-line">{{
+                                    containerLog
+                                  }}</span>
                                 </el-scrollbar>
+                                <!-- <div id="log"></div> -->
                               </el-card>
                             </el-col>
                           </el-row>
@@ -442,24 +441,21 @@ export default {
       timer: 0,
       //webshell终端
       term: null,
+      //日志显示终端
+      logTerm: null,
       //websocket连接
       socket: null,
+      //日志websocket连接
+      logSocket: null,
     };
   },
-  beforeMount() {
-    //加载页面时先获取localStorage中的namespace值，若获取不到则默认default，放在下拉框第一位显示
-    if (
-      localStorage.getItem("namespace") !== "undefined" &&
-      localStorage.getItem("namespace") !== null
-    ) {
-      this.namespaceValue = localStorage.getItem("namespace");
-    }
-    this.getPodNamespace();
-    this.getPodList();
-  },
   methods: {
-    //webshell终端
-    //termanil
+    //换行函数
+    lines(str) {
+      let lines = str.split("\n");
+      return lines.join("<br>");
+    },
+    //初始化webshell终端
     initTrem() {
       //初始化xterm实例
       this.term = new Terminal({
@@ -509,6 +505,35 @@ export default {
       };
       this.socket.send(JSON.stringify(msgOrder2));
     },
+    //初始化日志显示终端
+    initLogTrem() {
+      //初始化xterm实例
+      this.logTerm = new Terminal({
+        rendererType: "canvas", //渲染类型
+        rows: 30, //行数
+        cols: 110,
+        fontSize: 10,
+        convertEol: false, //启用时，光标将设置为下一行的开头
+        scrollback: 100, //终端中的回滚量
+        disableStdin: true, //是否应禁用输入
+        cursorStyle: "underline", //光标样式
+        cursorBlink: false, //光标闪烁
+        theme: {
+          foreground: "#31843", //字体
+          background: "#837982", //背景色
+          cursor: "help", //设置光标
+        },
+      });
+      //console.log("打印term: ", this.term);
+      //绑定dom(也就是绑定div)
+      this.logTerm.open(document.getElementById("log"));
+      //调整适应父元素大小
+      const fitAddon = new FitAddon();
+      this.logTerm.loadAddon(fitAddon);
+      fitAddon.fit();
+      //获取终端的焦点
+      this.logTerm.focus();
+    },
     //初始化获取日志socket
     initGetLogSocket(row) {
       console.log("准备：", this.containerName);
@@ -521,7 +546,7 @@ export default {
         "&namespace=" +
         this.namespaceValue;
       //实例化
-      this.socket = new WebSocket(getlogWsUrl);
+      this.logSocket = new WebSocket(getlogWsUrl);
 
       //回调函数
       //关闭连接时的方法
@@ -535,40 +560,42 @@ export default {
     },
     //关闭连接时调用的方法
     logSocketOnClose() {
-      this.socket.onclose = () => {
-        console.log("socket连接已关闭");
+      this.logSocket.onclose = () => {
+        console.log("日志websocket连接已关闭");
       };
     },
     //log建立连接时调用的方法
     logSocketOnOpen() {
-      this.socket.onopen = () => {
-        //建立连接成功后，初始化虚拟终端
-        console.log("socket连接成功");
+      this.logSocket.onopen = () => {
+        //建立连接成功后，初始化日志显示虚拟终端
+        //this.initLogTrem();
+        console.log("打印socket连接成功");
       };
     },
     //log接收消息调用的方法
     logSocketOnMessage() {
-      this.socket.onmessage = (msg) => {
+      this.logSocket.onmessage = (msg) => {
         //接收到消息后将字符串转为对象，输出data内容
         let content = JSON.parse(msg.data);
         this.containerLog = content.data;
-        console.log("ws获取到：", content.data);
+        //let newlog = this.lines(this.containerLog);
+        console.log("ws获取到：", this.containerLog);
+        //this.logTerm.write(this.containerLog);
       };
     },
     //log报错时调用的方法
     logSocketOnError() {
-      this.socket.onerror = () => {
+      this.logSocket.onerror = () => {
         console.log("socket连接失败...");
       };
     },
     //log关闭socket连接
     logCloseSocket() {
-      if (this.socket == null) {
+      if (this.logSocket == null) {
         return;
       }
-      this.socket.send("close");
-      this.socket.close();
-      console.log("socket close");
+      this.logSocket.close();
+      console.log("日志websocket关闭中...");
     },
 
     //初始化终端用的websocket
@@ -599,7 +626,8 @@ export default {
     socketOnClose() {
       this.socket.onclose = () => {
         //关闭连接后打印在终端里
-        this.term.write("链接已关闭");
+        this.term.write("终端websocket连接已关闭");
+        console.log("终端websocket连接已关闭");
       };
     },
     //建立连接时的方法
@@ -634,6 +662,7 @@ export default {
       this.term.write("连接关闭中...");
       this.socket.close();
     },
+
     //测试
     gettest(pod) {
       console.log("打印 ", pod, this.containerName);
@@ -842,8 +871,9 @@ export default {
         //展开之后取获取容器列表
         this.getContainers(row.metadata.name);
       } else {
-        //关闭展开框的时候去关闭websokcet连接
+        //关闭展开框的时候去关闭所有websokcet连接
         console.log("关闭socket");
+        this.closeSocket();
         this.logCloseSocket();
         //如果当前是关闭状态，就去标记状态码是关闭状态
         this.expandStatus = false;
@@ -908,6 +938,21 @@ export default {
       },
     },
   },
+  mounted() {
+    // 设置终端字符编码为 UTF-8
+    process.env.LANG = "en_US.UTF-8";
+  },
+  beforeMount() {
+    //加载页面时先获取localStorage中的namespace值，若获取不到则默认default，放在下拉框第一位显示
+    if (
+      localStorage.getItem("namespace") !== "undefined" &&
+      localStorage.getItem("namespace") !== null
+    ) {
+      this.namespaceValue = localStorage.getItem("namespace");
+    }
+    this.getPodNamespace();
+    this.getPodList();
+  },
   beforeUnmount() {
     if (this.socket != null) {
       console.log("开始关闭websocket");
@@ -928,14 +973,14 @@ export default {
   font-size: 15px;
 }
 .log-card {
-  background-color: black;
-  color: aliceblue;
+  background-color: rgb(83, 79, 82);
+  color: rgb(3, 184, 3);
   padding: 5px;
 }
 .pod-body-shell-card {
   border-radius: 1px;
   height: 600px;
   overflow: auto;
-  background-color: #060101;
+  background-color: rgb(12, 12, 12);
 }
 </style>
