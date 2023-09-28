@@ -19,6 +19,8 @@ export default {
   K8sGetContainers: "http://127.0.0.1:8999/api/corev1/getcontainers",
   K8sGetContainerLog: "http://127.0.0.1:8999/api/corev1/getlog",
   K8sGetPodNum: "http://127.0.0.1:8999/api/corev1/getpodnum",
+  k8sTerminalWs: "ws://127.0.0.1:8081/ws",
+  K8sGetLogs: "ws://127.0.0.1:8999/api/getlogs",
 
   //编辑器配置
   cmOptions: {

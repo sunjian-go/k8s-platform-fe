@@ -118,13 +118,11 @@
                               </el-select>
                             </el-col>
                             <el-col :span="2">
-                              <!-- <el-button
+                              <el-button
                                 type="primary"
-                                @click="
-                                  getContainerLog(props.row.metadata.name)
-                                "
+                                @click="initGetLogSocket(props.row)"
                                 >查看</el-button
-                              > -->
+                              >
                             </el-col>
                             <el-col :span="24">
                               <el-card shadow="never" class="log-card">
@@ -145,7 +143,49 @@
                         </el-card>
                       </el-tab-pane>
                       <!-- tab终端标签页 -->
-                      <el-tab-pane label="终端" name="shell"></el-tab-pane>
+                      <el-tab-pane label="终端" name="shell">
+                        <el-card :body-style="{ padding: '5px' }">
+                          <el-row :gutter="5">
+                            <el-col :span="3">
+                              <el-select
+                                v-model="containerName"
+                                placeholder="请选择"
+                              >
+                                <el-option
+                                  v-for="(val, key) in containerList"
+                                  :key="key"
+                                  :label="val"
+                                  :value="val"
+                                  :disabled="false"
+                                />
+                              </el-select>
+                            </el-col>
+                            <el-col :span="4">
+                              <el-button
+                                type="primary"
+                                @click="initSocket(props.row)"
+                                >连接</el-button
+                              >
+                              <el-button
+                                type="danger"
+                                style="margin-left: 5px"
+                                @click="closeSocket()"
+                                >关闭</el-button
+                              >
+                            </el-col>
+                            <el-col :span="24">
+                              <el-card
+                                shadow="never"
+                                class="pod-body-shell-card"
+                                :body-style="{ padding: '5px' }"
+                              >
+                                <!-- xterm虚拟终端 -->
+                                <div id="xterm"></div>
+                              </el-card>
+                            </el-col>
+                          </el-row>
+                        </el-card>
+                      </el-tab-pane>
                     </el-tabs>
                   </template>
                 </el-table-column>
@@ -308,6 +348,12 @@ import common from "../common/Config";
 import httpClient from "../../utils/request";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
+//引入Xtem终端依赖
+import { Terminal } from "xterm";
+import { FitAddon } from "xterm-addon-fit";
+// 引入css和js是为了该组件的外观展示
+import "xterm/css/xterm.css";
+import "xterm/lib/xterm.js";
 export default {
   data() {
     return {
@@ -394,6 +440,10 @@ export default {
         },
       },
       timer: 0,
+      //webshell终端
+      term: null,
+      //websocket连接
+      socket: null,
     };
   },
   beforeMount() {
@@ -408,6 +458,182 @@ export default {
     this.getPodList();
   },
   methods: {
+    //webshell终端
+    //termanil
+    initTrem() {
+      //初始化xterm实例
+      this.term = new Terminal({
+        rendererType: "canvas", //渲染类型
+        rows: 30, //行数
+        cols: 110,
+        convertEol: false, //启用时，光标将设置为下一行的开头
+        scrollback: 10, //终端中的回滚量
+        disableStdin: false, //是否应禁用输入
+        cursorStyle: "underline", //光标样式
+        cursorBlink: true, //光标闪烁
+        theme: {
+          foreground: "white", //字体
+          background: "#060101", //背景色
+          cursor: "help", //设置光标
+        },
+      });
+      //console.log("打印term: ", this.term);
+      //绑定dom(也就是绑定div)
+      this.term.open(document.getElementById("xterm"));
+      //调整适应父元素大小
+      const fitAddon = new FitAddon();
+      this.term.loadAddon(fitAddon);
+      fitAddon.fit();
+      //获取终端的焦点
+      this.term.focus();
+
+      //定义发送策略
+      //this只作用于本方法，如果在子方法里用，必须重新声明一下
+      let _this = this;
+      //onData方法用于定义输入的动作
+      // 这里key值是输入的值，数据格式就是后端定义的 {"operation":"stdin","data":"ls"}
+      this.term.onData(function (key) {
+        //准备发送输入的内容
+        let msgOrder = {
+          operation: "stdin",
+          data: key,
+        };
+        //发送数据到后端
+        _this.socket.send(JSON.stringify(msgOrder));
+      });
+      //发送resize数据
+      let msgOrder2 = {
+        operation: "resize",
+        cols: this.term.cols,
+        rows: this.term.rows,
+      };
+      this.socket.send(JSON.stringify(msgOrder2));
+    },
+    //初始化获取日志socket
+    initGetLogSocket(row) {
+      console.log("准备：", this.containerName);
+      let getlogWsUrl =
+        common.K8sGetLogs +
+        "?container=" +
+        this.containerName +
+        "&pod_name=" +
+        row.metadata.name +
+        "&namespace=" +
+        this.namespaceValue;
+      //实例化
+      this.socket = new WebSocket(getlogWsUrl);
+
+      //回调函数
+      //关闭连接时的方法
+      this.logSocketOnClose();
+      //建立连接时的方法
+      this.logSocketOnOpen();
+      //接收消息的方法
+      this.logSocketOnMessage();
+      //报错时的方法
+      this.logSocketOnError();
+    },
+    //关闭连接时调用的方法
+    logSocketOnClose() {
+      this.socket.onclose = () => {
+        console.log("socket连接已关闭");
+      };
+    },
+    //log建立连接时调用的方法
+    logSocketOnOpen() {
+      this.socket.onopen = () => {
+        //建立连接成功后，初始化虚拟终端
+        console.log("socket连接成功");
+      };
+    },
+    //log接收消息调用的方法
+    logSocketOnMessage() {
+      this.socket.onmessage = (msg) => {
+        //接收到消息后将字符串转为对象，输出data内容
+        let content = JSON.parse(msg.data);
+        this.containerLog = content.data;
+        console.log("ws获取到：", content.data);
+      };
+    },
+    //log报错时调用的方法
+    logSocketOnError() {
+      this.socket.onerror = () => {
+        console.log("socket连接失败...");
+      };
+    },
+    //log关闭socket连接
+    logCloseSocket() {
+      if (this.socket == null) {
+        return;
+      }
+      this.socket.send("close");
+      this.socket.close();
+      console.log("socket close");
+    },
+
+    //初始化终端用的websocket
+    initSocket(row) {
+      //定义websocket连接地址
+      let terminalWsUrl =
+        common.k8sTerminalWs +
+        "?pod_name=" +
+        row.metadata.name +
+        "&container_name=" +
+        this.containerName +
+        "&namespace=" +
+        this.namespaceValue;
+
+      //实例化
+      this.socket = new WebSocket(terminalWsUrl);
+
+      //关闭连接时的方法
+      this.socketOnClose();
+      //建立连接时的方法
+      this.socketOnOpen();
+      //接收消息的方法
+      this.socketOnMessage();
+      //报错时的方法
+      this.socketOnError();
+    },
+    //关闭连接时的方法
+    socketOnClose() {
+      this.socket.onclose = () => {
+        //关闭连接后打印在终端里
+        this.term.write("链接已关闭");
+      };
+    },
+    //建立连接时的方法
+    socketOnOpen() {
+      console.log("打印socket：", this.socket);
+      this.socket.onopen = () => {
+        //建立连接成功后，初始化虚拟终端
+        this.initTrem();
+      };
+      console.log("打印term", this.term);
+    },
+    //接收消息的方法
+    socketOnMessage() {
+      this.socket.onmessage = (msg) => {
+        //接收到消息后将字符串转为对象，输出data内容
+        let content = JSON.parse(msg.data);
+        //this.term.write(content.data);
+        this.term.write(content.data);
+      };
+    },
+    //报错时的方法
+    socketOnError() {
+      this.socket.onerror = () => {
+        console.log("socket连接失败...");
+      };
+    },
+    //关闭socket连接
+    closeSocket() {
+      if (this.socket == null) {
+        return;
+      }
+      this.term.write("连接关闭中...");
+      this.socket.close();
+    },
     //测试
     gettest(pod) {
       console.log("打印 ", pod, this.containerName);
@@ -616,11 +842,11 @@ export default {
         //展开之后取获取容器列表
         this.getContainers(row.metadata.name);
       } else {
+        //关闭展开框的时候去关闭websokcet连接
+        console.log("关闭socket");
+        this.logCloseSocket();
         //如果当前是关闭状态，就去标记状态码是关闭状态
         this.expandStatus = false;
-        //this.containerName = "";
-        // 停止 setInterval 的执行
-        clearInterval(this.timer);
       }
     },
     //获取container列表
@@ -637,9 +863,9 @@ export default {
           this.containerName = this.containerList[0];
           console.log("2.获取到容器信息为：", this.containerName);
           //当获取容器信息成功时才实时获取该容器日志
-          this.timer = setInterval(() => {
-            this.getContainerLog(podName);
-          }, 700);
+          // this.timer = setInterval(() => {
+          //   this.getContainerLog(podName);
+          // }, 700);
           //this.getContainerLog(podName);
         })
         .catch((res) => {
@@ -666,6 +892,7 @@ export default {
         })
         .catch((res) => {
           console.log("获取日志报错为：", res.err);
+          clearInterval(this.timer);
         });
     },
   },
@@ -680,6 +907,12 @@ export default {
         this.getPodList();
       },
     },
+  },
+  beforeUnmount() {
+    if (this.socket != null) {
+      console.log("开始关闭websocket");
+      this.socket.close();
+    }
   },
 };
 </script>
@@ -698,5 +931,11 @@ export default {
   background-color: black;
   color: aliceblue;
   padding: 5px;
+}
+.pod-body-shell-card {
+  border-radius: 1px;
+  height: 600px;
+  overflow: auto;
+  background-color: #060101;
 }
 </style>

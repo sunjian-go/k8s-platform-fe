@@ -8,13 +8,17 @@ import * as ELIcons from "@element-plus/icons-vue";
 import App from "./App.vue";
 //引入路由配置及规则
 import router from "./router";
-
 //codemirror编辑器
 import { GlobalCmComponent } from "codemirror-editor-vue3";
 //引入主题 可以从 codemirror/theme/ 下引入多个
 import "../node_modules/codemirror-editor-vue3/node_modules/codemirror/theme/idea.css";
 //引入语言模式 可以从 codemirror/mode/ 下引入多个
 import "../node_modules/codemirror-editor-vue3/node_modules/codemirror/mode/yaml/yaml.js";
+//引入Xtem终端依赖
+import { Terminal } from "xterm";
+import { FitAddon } from "xterm-addon-fit";
+import "xterm/css/xterm.css";
+import "xterm/lib/xterm.js";
 
 //创建vue实例
 const app = createApp(App);
@@ -29,8 +33,8 @@ app.use(ElementPlus);
 app.use(router);
 
 //这两段代码是为了避免以下报错
-// ResizeObserver loop limit exceeded     
-// at handleError (webpack-internal:///./node_modules/webpack-dev-server/client/overlay.js:299:58)    
+// ResizeObserver loop limit exceeded
+// at handleError (webpack-internal:///./node_modules/webpack-dev-server/client/overlay.js:299:58)
 //  at eval (webpack-internal:///./node_modules/webpack-dev-server/client/overlay.js:318:7)
 const debounce = (fn, delay) => {
   let timer = null;
@@ -41,15 +45,15 @@ const debounce = (fn, delay) => {
     timer = setTimeout(function () {
       fn.apply(context, args);
     }, delay);
-  }
-}
+  };
+};
 const _ResizeObserver = window.ResizeObserver;
-window.ResizeObserver = class ResizeObserver extends _ResizeObserver{
+window.ResizeObserver = class ResizeObserver extends _ResizeObserver {
   constructor(callback) {
     callback = debounce(callback, 16);
     super(callback);
   }
-}
+};
 
 //挂载
 app.mount("#app");
