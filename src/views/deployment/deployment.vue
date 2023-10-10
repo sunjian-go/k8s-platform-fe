@@ -685,7 +685,7 @@ export default {
             message: res.msg,
           });
           console.log("报错为：", res);
-          this.appLoading = false;
+          //this.appLoading = false;
         });
     },
     //创建deployment对象
