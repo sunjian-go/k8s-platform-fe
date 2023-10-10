@@ -21,6 +21,25 @@ export default {
   K8sGetPodNum: "http://127.0.0.1:8999/api/corev1/getpodnum",
   k8sTerminalWs: "ws://127.0.0.1:8081/ws",
   K8sGetLogs: "ws://127.0.0.1:8999/api/getlogs",
+  //daemonset
+  K8sGetDaemonSetList: "http://127.0.0.1:8999/api/appsv1/getdaemonSet",
+  K8sGetDaemonSetDetail: "http://127.0.0.1:8999/api/appsv1/getdaemonSetDetail",
+  K8sDeleteDaemonSet: "http://127.0.0.1:8999/api/appsv1/deleteDaemonSet",
+  K8sUpdateDaemonSet: "http://127.0.0.1:8999/api/appsv1/updateDaemonSet",
+  //statefulset
+  K8sGetStatefulSetList: "http://127.0.0.1:8999/api/appsv1/getstatefulSets",
+  K8sGetStatefulSetDetail:
+    "http://127.0.0.1:8999/api/appsv1/getstatefulSetDetail",
+  K8sDeleteStatefulSet: "http://127.0.0.1:8999/api/appsv1/deletestatefulSet",
+  K8sUpdateStatefulSet: "http://127.0.0.1:8999/api/appsv1/updatestatefulSet",
+  //node
+  K8sGetNodeList: "http://127.0.0.1:8999/api/corev1/getnodes",
+  K8sGetNodeDetail: "http://127.0.0.1:8999/api/corev1/getnodedetail",
+  //namespace
+  K8sGetNamespaceList: "http://127.0.0.1:8999/api/corev1/getnamespaces",
+  K8sGetNamespaceDetail: "http://127.0.0.1:8999/api/corev1/getnamespaceDetail",
+  K8sDeleteNamespace: "http://127.0.0.1:8999/api/corev1/deletenamespace",
+  //
 
   //编辑器配置
   cmOptions: {

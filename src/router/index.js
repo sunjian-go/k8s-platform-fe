@@ -68,16 +68,26 @@ const routes = [
       {
         path: "/workload/deployment", //视图,访问子页面的时候会带上layout布局页面
         name: "Deployment",
-        // icon: "Watermelon", //图标
         meta: { title: "Deployment", requireAuth: true },
         component: () => import("@/views/deployment/deployment.vue"), //视图组件
       },
       {
         path: "/workload/pod", //视图,访问子页面的时候会带上layout布局页面
         name: "Pod",
-        // icon: "Pear", //图标
         meta: { title: "pod", requireAuth: true },
         component: () => import("@/views/pod/pod.vue"), //视图组件
+      },
+      {
+        path: "/workload/daemonset", //视图,访问子页面的时候会带上layout布局页面
+        name: "DaemonSet",
+        meta: { title: "DaemonSet", requireAuth: true },
+        component: () => import("@/views/daemonset/DaemonSet.vue"), //视图组件
+      },
+      {
+        path: "/workload/statefulset", //视图,访问子页面的时候会带上layout布局页面
+        name: "StatefulSet",
+        meta: { title: "StatefulSet", requireAuth: true },
+        component: () => import("@/views/statefulset/StatefulSet.vue"), //视图组件
       },
     ],
   },
@@ -138,7 +148,12 @@ const routes = [
       },
     ],
   },
-
+  {
+    path: "/nodedetail", //视图
+    //icon: "odometer", //图标
+    meta: { title: "NodeDetail", requireAuth: true }, //定义meta元数据
+    component: () => import("@/views/cluster/NodeDetail.vue"), //视图组件
+  },
   {
     path: "/404", //视图
     icon: "odometer", //图标

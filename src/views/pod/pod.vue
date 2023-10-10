@@ -125,8 +125,11 @@
                               >
                             </el-col>
                             <el-col :span="24">
-                              <el-card shadow="never" class="log-card">
-                                <el-scrollbar
+                              <el-card
+                                shadow="never"
+                                :body-style="{ padding: '5px' }"
+                              >
+                                <!-- <el-scrollbar
                                   always
                                   height="400px"
                                   noresize="Boolean"
@@ -134,8 +137,9 @@
                                   <span style="white-space: pre-line">{{
                                     containerLog
                                   }}</span>
-                                </el-scrollbar>
-                                <!-- <div id="log"></div> -->
+                                </el-scrollbar> -->
+
+                                <div id="log"></div>
                               </el-card>
                             </el-col>
                           </el-row>
@@ -520,7 +524,7 @@ export default {
         cursorBlink: false, //光标闪烁
         theme: {
           foreground: "#31843", //字体
-          background: "#837982", //背景色
+          background: "#121212", //背景色
           cursor: "help", //设置光标
         },
       });
@@ -568,7 +572,7 @@ export default {
     logSocketOnOpen() {
       this.logSocket.onopen = () => {
         //建立连接成功后，初始化日志显示虚拟终端
-        //this.initLogTrem();
+        this.initLogTrem();
         console.log("打印socket连接成功");
       };
     },
@@ -580,7 +584,7 @@ export default {
         this.containerLog = content.data;
         //let newlog = this.lines(this.containerLog);
         console.log("ws获取到：", this.containerLog);
-        //this.logTerm.write(this.containerLog);
+        this.logTerm.write(this.containerLog);
       };
     },
     //log报错时调用的方法
@@ -899,6 +903,16 @@ export default {
           //this.getContainerLog(podName);
         })
         .catch((res) => {
+          if (this.namespaceValue == "") {
+            this.$alert("请选择namespace后重试", "提示", {
+              confirmButtonText: "确定",
+              callback: (action) => {
+                this.expandKeys = [];
+              },
+            });
+
+            return;
+          }
           console.log("获取容器信息报错为：", res.err);
           this.$message({
             type: "error",
