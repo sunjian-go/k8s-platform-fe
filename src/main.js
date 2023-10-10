@@ -14,11 +14,6 @@ import { GlobalCmComponent } from "codemirror-editor-vue3";
 import "../node_modules/codemirror-editor-vue3/node_modules/codemirror/theme/idea.css";
 //引入语言模式 可以从 codemirror/mode/ 下引入多个
 import "../node_modules/codemirror-editor-vue3/node_modules/codemirror/mode/yaml/yaml.js";
-//引入Xtem终端依赖
-import { Terminal } from "xterm";
-import { FitAddon } from "xterm-addon-fit";
-import "xterm/css/xterm.css";
-import "xterm/lib/xterm.js";
 
 //创建vue实例
 const app = createApp(App);
