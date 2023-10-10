@@ -723,7 +723,7 @@ export default {
         })
         .catch((res) => {
           console.log("报错为：", res.err);
-          this.apploading = false;
+          //this.apploading = false;
         });
     },
     //刷新按钮

@@ -37,6 +37,7 @@ export default {
   K8sGetNodeDetail: "http://127.0.0.1:8999/api/corev1/getnodedetail",
   //namespace
   K8sGetNamespaceList: "http://127.0.0.1:8999/api/corev1/getnamespaces",
+  K8sGetNamespaces: "http://127.0.0.1:8999/api/corev1/getnamespaceList",
   K8sGetNamespaceDetail: "http://127.0.0.1:8999/api/corev1/getnamespaceDetail",
   K8sDeleteNamespace: "http://127.0.0.1:8999/api/corev1/deletenamespace",
   //

@@ -27,6 +27,23 @@
                     <span>{{ scope.row.status.addresses[0].address }}</span>
                   </template>
                 </el-table-column>
+                <el-table-column label="状态" align="center">
+                  <template v-slot="scope">
+                    <el-tag
+                      type="success"
+                      v-if="scope.row.status.conditions[4].status == 'True'"
+                      >Ready</el-tag
+                    >
+
+                    <el-tag
+                      type="warning"
+                      v-else-if="
+                        scope.row.status.conditions[4].status != 'True'
+                      "
+                      >NotReady</el-tag
+                    >
+                  </template>
+                </el-table-column>
                 <el-table-column label="规格" align="center">
                   <template v-slot="scope">
                     <el-tag
@@ -38,7 +55,7 @@
                 </el-table-column>
                 <el-table-column label="POD-CIDR" align="center">
                   <template v-slot="scope">
-                    <el-tag type="success">{{ scope.row.spec.podCIDR }}</el-tag>
+                    <el-tag type="info">{{ scope.row.spec.podCIDR }}</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="版本" align="center">

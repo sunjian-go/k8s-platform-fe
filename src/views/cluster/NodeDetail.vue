@@ -1,7 +1,7 @@
 <template lang="">
   <el-container class="el-container">
     <el-header style="height: 20vh">
-      <div>
+      <div class="el-head-div">
         <el-row>
           <el-col :span="24" style="height: 2vh"> </el-col>
           <el-col :span="24">
@@ -59,17 +59,17 @@
       </div>
     </el-header>
     <el-main>
-      <div>
+      <div class="el-mian-div">
         <el-row>
           <!-- 系统信息 -->
           <el-col :span="24">
             <el-card shadow="never">
               <el-collapse v-model="activeNames" @change="handleChange">
-                <el-collapse-item name="1">
+                <el-collapse-item style="background: red">
                   <template #title>
                     <span style="font-size: 16px">系统信息</span>
                   </template>
-                  <p>操作系统和kubenetes信息</p>
+                  <p class="head-card-span">操作系统和kubenetes信息</p>
                   <el-row :gutter="0">
                     <el-col :span="10">
                       <el-table :data="OS_key" style="width: 100%">
@@ -99,11 +99,13 @@
           <el-col :span="24">
             <el-card shadow="never">
               <el-collapse v-model="activeNames" @change="handleChange">
-                <el-collapse-item name="1">
+                <el-collapse-item>
                   <template #title>
                     <span style="font-size: 16px">标签</span>
                   </template>
-                  <p>键/值 可以被用在主机调度规则里和一些其他的高级设置中</p>
+                  <p class="head-card-span">
+                    键/值 可以被用在主机调度规则里和一些其他的高级设置中
+                  </p>
                   <el-row :gutter="0">
                     <el-col :span="10">
                       <el-table :data="labels_key" style="width: 100%">
@@ -132,11 +134,11 @@
           <el-col :span="24">
             <el-card shadow="never">
               <el-collapse v-model="activeNames" @change="handleChange">
-                <el-collapse-item name="1">
+                <el-collapse-item>
                   <template #title>
                     <span style="font-size: 16px">注释</span>
                   </template>
-                  <p>Key/value 元数据</p>
+                  <p class="head-card-span">Key/value 元数据</p>
                   <el-row :gutter="0">
                     <el-col :span="10">
                       <el-table :data="annotations_key" style="width: 100%">
@@ -165,11 +167,11 @@
           <el-col :span="24">
             <el-card shadow="never">
               <el-collapse v-model="activeNames" @change="handleChange">
-                <el-collapse-item name="1">
+                <el-collapse-item>
                   <template #title>
                     <span style="font-size: 16px">Taints</span>
                   </template>
-                  <p>
+                  <p class="head-card-span">
                     通过向节点添加taints和tolerations，确保工作负载只在适当的节点上运行
                   </p>
                   <el-row :gutter="0">
@@ -398,6 +400,17 @@ export default {
   margin-left: auto;
   margin-right: auto;
   height: 100vh;
+  width: 100%;
+}
+.el-mian-div {
+  margin-left: auto;
+  margin-right: auto;
+  /* height: 100vh; */
+  width: 70%;
+}
+.el-head-div {
+  margin-left: auto;
+  margin-right: auto;
   width: 70%;
 }
 </style>

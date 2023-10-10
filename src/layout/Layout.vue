@@ -3,7 +3,7 @@
     <!-- container整体布局 -->
     <el-container style="height: 100vh">
       <!-- 侧边栏，定义默认宽度 -->
-      <el-aside :width="asideWidth" class="aside">
+      <el-aside :width="asideWidth" class="aside" :style="dynamicStyle">
         <!-- 固钉，将平台logo和名字固钉在侧边栏最上方 -->
         <!-- z-index是显示优先级 -->
         <el-affix class="aside-affix" :z-index="1200">
@@ -12,7 +12,12 @@
             <el-image class="logo-img" :src="logo" />
             <!-- 平台名，折叠后不显示 -->
             <span :class="[isCollapse ? 'is-collapse' : '']"></span>
-            <span class="logo-name" v-show="!isCollapse">Kubernetes</span>
+            <span
+              :style="dynamicFontStyle"
+              class="logo-name"
+              v-show="!isCollapse"
+              >Kubernetes</span
+            >
           </div>
         </el-affix>
         <!-- 菜单导航栏 -->
@@ -20,11 +25,12 @@
         <!-- default-active 默认激活的菜单栏,根据打开的path来找到对应的栏 -->
         <!-- collapse 是否折叠 ;background-color="#131b27"-->
         <el-menu
+          :style="dynamicStyle"
           class="aside-menu"
           router
           :default-active="$route.path"
           :collapse="isCollapse"
-          background-color="#6c038b"
+          background-color="color"
           text-color="#bfcbd9"
           active-text-color="#20a0ff"
         >
@@ -45,7 +51,7 @@
               <!--下面的template是一个插槽，插槽名字是title-->
               <template #title>
                 <!--这个m.children[0].name就是index.js里面的‘概要’路由，目前只有它有一个子路由-->
-                {{ m.children[0].name }}
+                <span :style="dynamicFontStyle">{{ m.children[0].name }}</span>
               </template>
             </el-menu-item>
 
@@ -64,6 +70,7 @@
                 <span
                   :class="[isCollapse ? 'is-collapse' : '']"
                   v-show="!isCollapse"
+                  :style="dynamicFontStyle"
                 >
                   <!--下面m.name就是index.js里面的工作负载路由的name-->
                   {{ m.name }}</span
@@ -72,6 +79,7 @@
               <!--处理子菜单栏-->
               <el-menu-item
                 class="aside-menu-childitem"
+                :style="dynamicFontStyle"
                 v-for="child in m.children"
                 :key="child"
                 :index="child.path"
@@ -133,8 +141,11 @@
                 <!-- 通过 #dropdown 来使用这个模板，将下拉菜单插入到相应的位置。 -->
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item @click="logout()">退出</el-dropdown-item>
                     <el-dropdown-item>修改密码</el-dropdown-item>
+                    <el-dropdown-item @click="colorStatus = true"
+                      >设置</el-dropdown-item
+                    >
+                    <el-dropdown-item @click="logout()">退出</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -164,6 +175,44 @@
         </el-footer>
       </el-container>
     </el-container>
+    <div>
+      <el-dialog title="设置背景色" v-model="colorStatus" width="20%" top="5%">
+        <el-tabs v-model="activeName" @tab-click="handleClick">
+          <el-tab-pane label="设置背景色" name="first">
+            <el-row>
+              <el-col :span="24" style="display: flex; justify-content: left">
+                <span
+                  style="display: flex; align-items: center; font-size: 16px"
+                  >选择背景色:
+                </span>
+                <div class="block" style="padding-left: 10px">
+                  <el-color-picker v-model="color"></el-color-picker>
+                </div>
+              </el-col>
+            </el-row>
+          </el-tab-pane>
+          <el-tab-pane label="设置字体颜色" name="second">
+            <el-row>
+              <el-col :span="24" style="display: flex; justify-content: left">
+                <span
+                  style="display: flex; align-items: center; font-size: 16px"
+                  >选择字体颜色:
+                </span>
+                <div class="block" style="padding-left: 10px">
+                  <el-color-picker v-model="fontColor"></el-color-picker>
+                </div>
+              </el-col>
+            </el-row>
+          </el-tab-pane>
+        </el-tabs>
+        <template #footer>
+          <span class="dialog-footer">
+            <el-button @click="colorStatus = false">取 消</el-button>
+            <el-button type="primary" @click="setColor">确 定</el-button>
+          </span>
+        </template>
+      </el-dialog>
+    </div>
   </div>
 </template>
 
@@ -180,6 +229,10 @@ export default {
       asideWidth: "220px",
       //路由规则
       routers: [],
+      colorStatus: false,
+      color: "#6c038b",
+      activeName: "first",
+      fontColor: "#E4E4E4",
     };
   },
   // computed里面：当值改变了，会自动重新获取该值
@@ -187,6 +240,19 @@ export default {
     getUsername() {
       let username = localStorage.getItem("username");
       return username ? username : "unknow";
+    },
+    //设置背景色和字体颜色，值为自定义颜色，使用方法：<div :style="dynamicStyle">
+    dynamicStyle() {
+      return {
+        background: this.color,
+        // 其他样式属性...
+      };
+    },
+    dynamicFontStyle() {
+      return {
+        color: this.fontColor,
+        // 其他样式属性...
+      };
     },
   },
   //加载页面之前的操作
@@ -197,6 +263,7 @@ export default {
   methods: {
     //控制折叠
     onCollapse() {
+      // document.documentElement.style.setProperty("--my-variable", "#6c038b");
       // 当前状态是收起，点击后展开
       if (this.isCollapse) {
         this.asideWidth = "220px";
@@ -213,6 +280,11 @@ export default {
       localStorage.removeItem("token");
       //跳转至/login页面
       this.$router.push("/login");
+    },
+    //设置背景色
+    setColor() {
+      console.log("选择颜色：", this.color);
+      this.colorStatus = false;
     },
   },
 };
@@ -251,7 +323,6 @@ export default {
 /* 侧边栏折叠速度，背景色 */
 .aside {
   transition: all 0.5s; /*折叠菜单栏的速度 */
-  background-color: #6c038b;
 }
 /* 修整边框，让边框不要有溢出 */
 .aside-affix {
@@ -284,6 +355,9 @@ export default {
 }
 .aside-menu-childitem {
   padding-left: 20px !important;
+}
+.font-color {
+  color: white;
 }
 /* main属性 */
 .main {
