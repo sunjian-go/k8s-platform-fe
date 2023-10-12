@@ -252,10 +252,7 @@
                           type="primary"
                           icon="Edit"
                           plain
-                          @click="
-                            getPodDetail(scope.row.metadata.name),
-                              (yamlDialog = true)
-                          "
+                          @click="getPodDetail(scope.row), (yamlDialog = true)"
                           >YAML</el-button
                         >
                       </el-col>
@@ -798,9 +795,12 @@ export default {
         });
     },
     //获取pod详情
-    getPodDetail(e) {
-      this.getPodDetailData.params.name = e;
-      this.getPodDetailData.params.namespace = this.namespaceValue;
+    getPodDetail(obj) {
+      this.getPodDetailData.params.name = obj.metadata.name;
+      if (this.namespaceValue != "") {
+        this.getPodDetailData.params.namespace = this.namespaceValue;
+      }
+      this.getPodDetailData.params.namespace = obj.metadata.namespace;
       console.log("传进来的的为：", this.getPodDetailData.params);
       httpClient
         .get(this.getPodDetailData.url, this.getPodDetailData)

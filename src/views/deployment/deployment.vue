@@ -203,8 +203,7 @@
                       icon="Edit"
                       plain
                       @click="
-                        getDeploymentDetail(scope.row.metadata.name),
-                          (yamlDialog = true)
+                        getDeploymentDetail(scope.row), (yamlDialog = true)
                       "
                       >YAML</el-button
                     >
@@ -903,9 +902,12 @@ export default {
         });
     },
     //获取deployment详情
-    getDeploymentDetail(objName) {
-      this.deploymentDetailData.params.name = objName;
-      this.deploymentDetailData.params.namespace = this.namespaceValue;
+    getDeploymentDetail(obj) {
+      this.deploymentDetailData.params.name = obj.metadata.name;
+      if (this.namespaceValue != "") {
+        this.deploymentDetailData.params.namespace = this.namespaceValue;
+      }
+      this.deploymentDetailData.params.namespace = obj.metadata.namespace;
       httpClient
         .get(this.deploymentDetailData.url, {
           params: this.deploymentDetailData.params,

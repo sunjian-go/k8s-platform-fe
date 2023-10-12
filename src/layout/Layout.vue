@@ -186,7 +186,7 @@
                   >选择背景色:
                 </span>
                 <div class="block" style="padding-left: 10px">
-                  <el-color-picker v-model="color"></el-color-picker>
+                  <el-color-picker v-model="backgroundColor"></el-color-picker>
                 </div>
               </el-col>
             </el-row>
@@ -208,7 +208,7 @@
         <template #footer>
           <span class="dialog-footer">
             <el-button @click="colorStatus = false">取 消</el-button>
-            <el-button type="primary" @click="setColor">确 定</el-button>
+            <el-button type="primary" @click="updateColor">确 定</el-button>
           </span>
         </template>
       </el-dialog>
@@ -218,6 +218,8 @@
 
 <script>
 import { useRouter } from "vue-router";
+import common from "../views/common/Config";
+import httpClient from "../utils/request";
 export default {
   data() {
     return {
@@ -230,9 +232,19 @@ export default {
       //路由规则
       routers: [],
       colorStatus: false,
-      color: "#6c038b",
+      backgroundColor: "",
+      fontColor: "",
       activeName: "first",
-      fontColor: "#E4E4E4",
+      getColorData: {
+        url: common.GetColor,
+      },
+      updateColorData: {
+        url: common.UpdateColor,
+        body: {
+          background: "",
+          color: "",
+        },
+      },
     };
   },
   // computed里面：当值改变了，会自动重新获取该值
@@ -242,12 +254,14 @@ export default {
       return username ? username : "unknow";
     },
     //设置背景色和字体颜色，值为自定义颜色，使用方法：<div :style="dynamicStyle">
+    //背景色
     dynamicStyle() {
       return {
-        background: this.color,
+        background: this.backgroundColor,
         // 其他样式属性...
       };
     },
+    //字体颜色
     dynamicFontStyle() {
       return {
         color: this.fontColor,
@@ -259,6 +273,8 @@ export default {
   beforeMount() {
     //使用useRouter().options.routes方法获取index.js里的路由规则
     this.routers = useRouter().options.routes;
+    //从后端获取颜色
+    this.getColorForServer();
   },
   methods: {
     //控制折叠
@@ -281,10 +297,41 @@ export default {
       //跳转至/login页面
       this.$router.push("/login");
     },
-    //设置背景色
-    setColor() {
-      console.log("选择颜色：", this.color);
+    //更新背景色
+    updateColor() {
+      //console.log("选择颜色：", this.backgroundColor);
+      this.updateColorData.body.background = this.backgroundColor;
+      this.updateColorData.body.color = this.fontColor;
+      httpClient
+        .put(this.updateColorData.url, this.updateColorData.body)
+        .then((res) => {
+          this.$message.success({
+            message: res.msg,
+          });
+          this.getColorForServer();
+        })
+        .catch((res) => {
+          this.$message.info({
+            message: res.err,
+          });
+        });
       this.colorStatus = false;
+    },
+    //从后端获取颜色
+    getColorForServer() {
+      httpClient
+        .get(this.getColorData.url)
+        .then((res) => {
+          console.log("获取到颜色为：", res.data);
+          //成功获取到的话就更新颜色为最新，反之不变
+          this.backgroundColor = res.data.background;
+          this.fontColor = res.data.color;
+        })
+        .catch((res) => {
+          console.log("报错为：", res.err);
+          this.backgroundColor = "#6c038b";
+          this.fontColor = "#E4E4E4";
+        });
     },
   },
 };
@@ -331,6 +378,7 @@ export default {
 .aside-menu {
   border-right-width: 0;
 }
+
 /* 固钉，以及logo图片和平台名的属性 */
 .aside-logo {
   height: 60px;

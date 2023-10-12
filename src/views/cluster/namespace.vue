@@ -117,6 +117,7 @@
                     <!-- <el-row> -->
                     <!-- <el-col :span="4"> -->
                     <el-button
+                      disabled="true"
                       type="danger"
                       icon="Delete"
                       @click="

@@ -211,8 +211,7 @@
                       icon="Edit"
                       plain
                       @click="
-                        getStatefulSetDetail(scope.row.metadata.name),
-                          (yamlDialog = true)
+                        getStatefulSetDetail(scope.row), (yamlDialog = true)
                       "
                       >YAML</el-button
                     >
@@ -847,9 +846,12 @@ export default {
     },
 
     //获取statefulset详情
-    getStatefulSetDetail(objName) {
-      this.statefulsetDetailData.params.name = objName;
-      this.statefulsetDetailData.params.namespace = this.namespaceValue;
+    getStatefulSetDetail(obj) {
+      this.statefulsetDetailData.params.name = obj.metadata.name;
+      if (this.namespaceValue != "") {
+        this.statefulsetDetailData.params.namespace = this.namespaceValue;
+      }
+      this.statefulsetDetailData.params.namespace = obj.metadata.namespace;
       httpClient
         .get(this.statefulsetDetailData.url, {
           params: this.statefulsetDetailData.params,

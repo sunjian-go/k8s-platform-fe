@@ -40,7 +40,25 @@ export default {
   K8sGetNamespaces: "http://127.0.0.1:8999/api/corev1/getnamespaceList",
   K8sGetNamespaceDetail: "http://127.0.0.1:8999/api/corev1/getnamespaceDetail",
   K8sDeleteNamespace: "http://127.0.0.1:8999/api/corev1/deletenamespace",
-  //
+  //获取颜色
+  GetColor: "http://127.0.0.1:8999/getColor",
+  UpdateColor: "http://127.0.0.1:8999/updateColor",
+  //pv
+  K8sGetPvs: "http://127.0.0.1:8999/api/corev1/getpvs",
+  K8sGetPvDetail: "http://127.0.0.1:8999/api/corev1/getpvdetail",
+  K8sDeletePv: "http://127.0.0.1:8999/api/corev1/deletepv",
+  //svc
+  K8sGetSvcs: "http://127.0.0.1:8999/api/corev1/getsvc",
+  K8sGetSvcDetail: "http://127.0.0.1:8999/api/corev1/getsvcdetail",
+  K8sCreateSvc: "http://127.0.0.1:8999/api/corev1/createsvc",
+  K8sDeleteSvc: "http://127.0.0.1:8999/api/corev1/deletesvc",
+  K8sUpdateSvc: "http://127.0.0.1:8999/api/corev1/updatesvc",
+  //ing
+  K8sGetIngresses: "http://127.0.0.1:8999/api/networking/geting",
+  K8sGetIngressDetail: "http://127.0.0.1:8999/api/networking/getingdetail",
+  K8sCreateIngress: "http://127.0.0.1:8999/api/networking/createing",
+  K8sDeleteIngress: "http://127.0.0.1:8999/api/networking/deleteing",
+  K8sUpdateIngress: "http://127.0.0.1:8999/api/networking/updateing",
 
   //编辑器配置
   cmOptions: {

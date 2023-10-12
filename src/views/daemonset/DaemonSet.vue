@@ -211,8 +211,7 @@
                       icon="Edit"
                       plain
                       @click="
-                        getDaemonSetDetail(scope.row.metadata.name),
-                          (yamlDialog = true)
+                        getDaemonSetDetail(scope.row), (yamlDialog = true)
                       "
                       >YAML</el-button
                     >
@@ -840,9 +839,12 @@ export default {
       this.num = objnum;
     },
     //获取daemonset详情
-    getDaemonSetDetail(objName) {
-      this.daemonsetDetailData.params.name = objName;
-      this.daemonsetDetailData.params.namespace = this.namespaceValue;
+    getDaemonSetDetail(obj) {
+      this.daemonsetDetailData.params.name = obj.metadata.name;
+      if (this.namespaceValue != "") {
+        this.daemonsetDetailData.params.namespace = this.namespaceValue;
+      }
+      this.daemonsetDetailData.params.namespace = obj.metadata.namespace;
       httpClient
         .get(this.daemonsetDetailData.url, {
           params: this.daemonsetDetailData.params,
