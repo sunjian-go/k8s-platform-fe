@@ -155,11 +155,14 @@
                     <!-- <el-row> -->
                     <!-- <el-col :span="4"> -->
                     <el-button
-                      disabled="true"
                       type="danger"
                       icon="Delete"
                       @click="
-                        handleConfirm(scope.row.metadata.name, '删除', deletePv)
+                        handleConfirm(
+                          scope.row.metadata.name,
+                          '删除',
+                          deleteSvc
+                        )
                       "
                       >删除</el-button
                     >
@@ -261,10 +264,11 @@
               label-width="80px"
               ref="createService"
               :rules="createServiceRules"
-              :model="createServiceData"
+              :model="createService"
             >
+              <!-- prop名字与规则里面的name保持一致 -->
               <el-form-item label="名称" prop="name" class="deploy-create-form">
-                <el-input v-model="createServiceData.name"></el-input>
+                <el-input v-model="createService.name"></el-input>
               </el-form-item>
               <el-form-item
                 label="命名空间"
@@ -272,7 +276,7 @@
                 class="deploy-create-form"
               >
                 <el-select
-                  v-model="createServiceData.namespace"
+                  v-model="createService.namespace"
                   filterable
                   placeholder="请选择"
                   style="width: 100%"
@@ -285,27 +289,20 @@
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="类型" prop="replicas" style="width: 90%">
+              <el-form-item label="类型" prop="type" style="width: 90%">
                 <el-select
-                  v-model="createServiceData.namespace"
+                  v-model="createService.type"
                   filterable
                   placeholder="请选择"
                   style="width: 100%"
                 >
                   <el-option
-                    v-for="(item, index) in namespaceList"
-                    :key="index"
-                    :label="item.metadata.name"
-                    :value="item.metadata.name"
+                    v-for="(v, i) in svcTypes"
+                    :key="i"
+                    :label="v"
+                    :value="v"
                   />
                 </el-select>
-              </el-form-item>
-              <el-form-item
-                label="镜像"
-                prop="image"
-                class="deploy-create-form"
-              >
-                <el-input v-model="createServiceData.image"></el-input>
               </el-form-item>
               <el-form-item
                 label="标签"
@@ -314,28 +311,9 @@
               >
                 <!-- placeholder: 用来在输入框显示提示信息 -->
                 <el-input
-                  v-model="createServiceData.label_str"
-                  placeholder="示例: project=ms,app=gateway"
+                  v-model="createService.label_str"
+                  placeholder="示例：app=test,name=test"
                 ></el-input>
-              </el-form-item>
-              <el-form-item
-                label="资源配额"
-                prop="resource"
-                class="deploy-create-form"
-              >
-                <el-select
-                  v-model="createServiceData.resource"
-                  style="width: 100%"
-                  placeholder="cpu/mem"
-                >
-                  <el-option
-                    v-for="(data, i) in resources"
-                    :key="i"
-                    :label="data"
-                    :value="data"
-                  >
-                  </el-option>
-                </el-select>
               </el-form-item>
               <el-form-item
                 label="容器端口"
@@ -343,16 +321,29 @@
                 class="deploy-create-form"
               >
                 <el-input
-                  v-model="createServiceData.container_port"
+                  v-model="createService.container_port"
                   placeholder="示例：80"
                 ></el-input>
               </el-form-item>
-              <el-form-item label="健康检查" class="deploy-create-form">
-                <!-- el-switch 开关按钮 -->
-                <el-switch v-model="createServiceData.health_check" />
+              <el-form-item
+                label="pod端口"
+                prop="port"
+                class="deploy-create-form"
+              >
+                <el-input
+                  v-model="createService.port"
+                  placeholder="示例：80"
+                ></el-input>
               </el-form-item>
-              <el-form-item label="检查路径" class="deploy-create-form">
-                <el-input v-model="createServiceData.health_path"></el-input>
+              <el-form-item
+                v-if="createService.type == 'NodePort'"
+                label="NodePort"
+                class="deploy-create-form"
+              >
+                <el-input
+                  v-model="createService.node_port"
+                  placeholder="示例：80 (不写默认随机端口)"
+                ></el-input>
               </el-form-item>
             </el-form>
           </el-col>
@@ -360,7 +351,7 @@
       </template>
       <template #footer>
         <el-button @click="drawer = false">取消</el-button>
-        <el-button type="primary" @click="submitForm('createServiceData')"
+        <el-button type="primary" @click="submitForm('createService')"
           >立即创建</el-button
         >
       </template>
@@ -405,10 +396,12 @@ export default {
         url: common.K8sDeleteSvc,
         params: {
           name: "",
+          namespace: "",
         },
       },
       drawer: false,
       // 定义el-form规则,只有定义了规则的input前面才会有红点,也就是必填项
+      // 规则名要与结构体中的名字保持一致
       createServiceRules: {
         name: [
           {
@@ -438,30 +431,127 @@ export default {
             trigger: "change",
           },
         ],
-        target_port: [
+        port: [
           {
             required: true,
             message: "请填pod端口",
             trigger: "change",
           },
         ],
+        label_str: [
+          {
+            required: true,
+            message: "请填写标签",
+            trigger: "change",
+          },
+        ],
       },
+
+      createService: {
+        name: "",
+        namespace: "",
+        type: "",
+        container_port: "0",
+        port: "",
+        node_port: "",
+        label_str: "",
+        label: {},
+      },
+      svcTypes: ["ClusterIP", "NodePort", "LoadBalancer"],
       createServiceData: {
         url: common.K8sCreateSvc,
         params: {
           name: "",
           namespace: "",
           type: "",
-          container_port: "",
-          port: "",
-          node_port: "",
+          container_port: 0,
+          port: 0,
+          node_port: 0,
           label: {},
         },
       },
-      type: [""],
     };
   },
   methods: {
+    //创建service对象
+    createServiceFunc() {
+      //正则匹配，验证label
+      // "(^[A-Za-z]+=[A-Za-z0-9]+).*": 表示匹配以字母开头，后跟一个或多个字母或数字的键值对形式的字符串。其中^表示匹配字符串的开始，
+      // [A-Za-z]表示匹配任意一个英文字母，+表示匹配前面的模式一次或多次，[A-Za-z0-9]表示匹配任意一个英文字母或数字，.*表示匹配任意字符零次或多次。
+      let reg = new RegExp("(^[A-Za-z]+=[A-Za-z0-9]+).*");
+      //如果不匹配
+      if (!reg.test(this.createService.label_str)) {
+        this.$message.warning({
+          message: "标签填写异常，请确认后重新填写",
+        });
+        return;
+      }
+      // 开启加载loading动画
+      this.fullscreenLoading = true;
+      let label = new Map();
+      // 将label_str字符串通过","进行分割，返回一个数组存储在a中：例如目前该字符串为："name=test,app=web",那么a就等于["name=test","app=web"]
+      let a = this.createService.label_str.split(",");
+      //遍历a数组中的每个元素
+      a.forEach((lab) => {
+        // item就是每个元素，将每个元素通过"="进行分割，得到一个子字符串数组b，例如，如果当前元素是"name=test"，则b将是["name", "test"]。
+        let b = lab.split("=");
+        // 将分割后的子字符串数组中的第一个元素作为键，第二个元素作为值，存储在上面创建的label对象(map)中。
+        label[b[0]] = b[1];
+      });
+
+      // 组装好类型一样的数据
+      this.createServiceData.params.name = this.createService.name;
+      this.createServiceData.params.namespace = this.createService.namespace;
+      this.createServiceData.params.type = this.createService.type;
+      this.createServiceData.params.container_port = parseInt(
+        this.createService.container_port
+      );
+      this.createServiceData.params.port = parseInt(this.createService.port);
+      this.createServiceData.params.node_port = parseInt(
+        this.createService.node_port
+      );
+      this.createServiceData.params.label = label;
+      console.log("组装数据：", this.createServiceData.params);
+
+      // 组装好数据后开始创建
+      httpClient
+        .post(this.createServiceData.url, this.createServiceData.params)
+        .then((res) => {
+          this.$message.success({
+            message: res.msg,
+          });
+          this.getSvcs();
+        })
+        .catch((res) => {
+          this.$message.error({
+            message: res.err,
+          });
+        });
+      //重置表单，无论创建成功与否，都会重置表单
+      this.resetForm("createService");
+      this.fullscreenLoading = false;
+      //关闭动画加载和抽屉
+      this.drawer = false;
+    },
+    //重置表单
+    resetForm(formName) {
+      //this.$refs可以获取到该表单对象所有组件的值
+      // resetFields方法可以重置表单字段的值
+      this.$refs[formName].resetFields();
+      //this.namespaceValue = "default";
+    },
+    //提交service参数
+    submitForm(formName) {
+      //验证表单的每个规则是否通过，通过则调用createServiceFunc，反之返回false
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          this.createServiceFunc();
+          console.log("规则通过：", formName);
+        } else {
+          return false;
+        }
+      });
+    },
     //获取namespace列表
     getNamespaces() {
       httpClient
@@ -526,6 +616,7 @@ export default {
     //刷新
     refulshButton() {
       this.searchValue = "";
+      this.namespaceValue = "";
       this.getSvcs();
     },
     //将创建弹出框的状态码置为true
@@ -550,6 +641,9 @@ export default {
     deleteSvc(svc) {
       console.log("要删除的namespoace是：", svc);
       this.deleteSvcData.params.name = svc;
+      this.deleteSvcData.params.namespace = this.namespaceValue;
+      console.log("要删除的是：", this.deleteSvcData.params);
+      //return;
       httpClient
         .delete(this.deleteSvcData.url, {
           params: this.deleteSvcData.params,
@@ -559,6 +653,7 @@ export default {
             type: "success",
             message: svc + "删除成功",
           });
+          this.getSvcs();
         })
         .catch((res) => {
           this.$message({
@@ -570,7 +665,7 @@ export default {
     //操作类提示框：重启、删除..
     handleConfirm(name, play, playFunc) {
       this.$confirm(
-        "确认继续" + play + "Deployment [" + name + "] 操作吗？",
+        "确认继续" + play + "Service [" + name + "] 操作吗？",
         "提示",
         {
           confirmButtonText: "确定",
@@ -609,7 +704,7 @@ export default {
     }
     //然后去获取namespace列表
     this.getNamespaces();
-    //获取deployment列表
+    //获取service列表
     this.getSvcs();
   },
   //watch是一个选项对象，用于监听数据的变化。
@@ -619,7 +714,7 @@ export default {
       handler() {
         //将namespace的值存入本地，用于刷新页面或者path切换后依旧能获取得之前设置的namespace值
         localStorage.setItem("namespace", this.namespaceValue);
-        // 页面刷新或切换的时候，把页数重新置为1并且重新获取deployment列表
+        // 页面刷新或切换的时候，把页数重新置为1并且重新获取service列表
         this.currentPage = 1;
         this.getSvcs();
       },

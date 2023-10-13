@@ -102,9 +102,11 @@
                 </el-table-column>
                 <el-table-column label="类" align="center">
                   <template v-slot="scope">
-                    <el-tag type="success">{{
-                      scope.row.spec.ingressClassName
-                    }}</el-tag>
+                    <el-tag
+                      type="success"
+                      v-if="scope.row.spec.ingressClassName"
+                      >{{ scope.row.spec.ingressClassName }}</el-tag
+                    >
                   </template>
                 </el-table-column>
                 <el-table-column label="hosts" align="center">
@@ -128,36 +130,52 @@
                 </el-table-column>
                 <el-table-column label="address" align="center">
                   <template v-slot="scope">
-                    <span type="">{{
-                      strToObj(
-                        scope.row.metadata.annotations[
-                          "field.cattle.io/publicEndpoints"
-                        ]
-                      )[0].addresses[0]
-                    }}</span>
-                  </template>
-                </el-table-column>
-                <el-table-column label="端口" align="center">
-                  <template v-slot="scope">
-                    <el-tag
+                    <span
                       type=""
                       v-if="
-                        strToObj(
-                          scope.row.metadata.annotations[
-                            'field.cattle.io/publicEndpoints'
-                          ]
-                        )[0].port != 80
+                        scope.row.metadata.annotations[
+                          'field.cattle.io/publicEndpoints'
+                        ]
                       "
-                      >80,
-                      {{
+                      >{{
                         strToObj(
                           scope.row.metadata.annotations[
                             "field.cattle.io/publicEndpoints"
                           ]
-                        )[0].port
-                      }}</el-tag
+                        )[0].addresses[0]
+                      }}</span
                     >
-                    <el-tag type="" v-else>80</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="端口" align="center">
+                  <template v-slot="scope">
+                    <div
+                      v-if="
+                        scope.row.metadata.annotations[
+                          'field.cattle.io/publicEndpoints'
+                        ]
+                      "
+                    >
+                      <el-tag
+                        type=""
+                        v-if="
+                          strToObj(
+                            scope.row.metadata.annotations[
+                              'field.cattle.io/publicEndpoints'
+                            ]
+                          )[0].port != 80
+                        "
+                        >80,
+                        {{
+                          strToObj(
+                            scope.row.metadata.annotations[
+                              "field.cattle.io/publicEndpoints"
+                            ]
+                          )[0].port
+                        }}</el-tag
+                      >
+                      <el-tag type="" v-else>80</el-tag>
+                    </div>
                   </template>
                 </el-table-column>
                 <el-table-column label="创建时间" align="center">
@@ -232,6 +250,181 @@
         @current-change="handleCurrentChange"
       />
     </div>
+
+    <!-- 抽屉包括其他dialog都可以放在代码块的最后 -->
+    <!-- 创建里面的抽屉 -->
+    <!-- v-model="drawer"：绑定该值用于显示(true)与隐藏(false) -->
+    <!-- :direction 设置显示的位置 -->
+    <!-- :before-close 关闭时触发，点击关闭或者空白区域都会触发 -->
+    <el-drawer
+      v-model="drawer"
+      :direction="direction"
+      :before-close="handleClose"
+    >
+      <!-- 插槽：抽屉标题  -->
+      <template #title>
+        <span style="font-weight: bold; font-size: 18px">创建Ingress</span>
+      </template>
+      <!-- 插槽，抽屉body，填写表单属性 -->
+      <template #default>
+        <!-- type="flex"  布局模式，可选 flex -->
+        <!-- justify="center"  flex布局下的水平排列方式 -->
+        <el-row type="flex" justify="center">
+          <el-col>
+            <!-- ref绑定控件后，js中才能用this.$ref获取该控件 -->
+            <!-- rules 定义form表单校验规则 -->
+            <!-- label-width 限制左侧标题的宽度 -->
+            <el-form
+              label-width="80px"
+              ref="createIngress"
+              :rules="createIngressRules"
+              :model="createIngress"
+            >
+              <!-- prop名字与规则里面的name保持一致 -->
+              <el-form-item label="名称" prop="name" class="deploy-create-form">
+                <el-input v-model="createIngress.name"></el-input>
+              </el-form-item>
+              <el-form-item
+                label="命名空间"
+                prop="namespace"
+                class="deploy-create-form"
+              >
+                <el-select
+                  v-model="createIngress.namespace"
+                  filterable
+                  placeholder="请选择"
+                  style="width: 100%"
+                >
+                  <el-option
+                    v-for="(item, index) in namespaceList"
+                    :key="index"
+                    :label="item.metadata.name"
+                    :value="item.metadata.name"
+                  />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item
+                label="标签"
+                prop="label_str"
+                class="deploy-create-form"
+              >
+                <!-- placeholder: 用来在输入框显示提示信息 -->
+                <el-input
+                  v-model="createIngress.label_str"
+                  placeholder="示例：app=test,name=test"
+                ></el-input>
+              </el-form-item>
+              <el-form-item label="域名" prop="type" style="width: 100%">
+                <el-input v-model="createIngress.host"></el-input>
+              </el-form-item>
+            </el-form>
+            <!-- 规则表单（独立） -->
+
+            <!-- <el-form
+              label-width="2px"
+              ref="createIngress"
+              :rules="createIngressRules"
+              :model="testarr"
+              v-for="i in testarr"
+              :key="i"
+            >
+              <el-form-item label="" prop="" style="width: 100%">
+                <el-row>
+                  <el-col>
+                    <el-form
+                      ref="createIngress"
+                      :rules="createIngressRules"
+                      :model="hosts"
+                    >
+                      <el-form-item
+                        label="主机路径"
+                        prop="path"
+                        style="width: 90%"
+                      >
+                        <el-input v-model="hosts.path"></el-input>
+                      </el-form-item>
+                      <el-form-item
+                        label="路径类型"
+                        prop="path_type"
+                        style="width: 90%"
+                      >
+                        <el-input v-model="hosts.path_type"></el-input>
+                      </el-form-item>
+                      <el-form-item
+                        label="SVC名字"
+                        prop="service_name"
+                        style="width: 90%"
+                      >
+                        <el-input v-model="hosts.service_name"></el-input>
+                      </el-form-item>
+                      <el-form-item
+                        label="SVC端口"
+                        prop="service_port"
+                        style="width: 90%"
+                      >
+                        <el-input v-model="hosts.service_port"></el-input>
+                      </el-form-item>
+                    </el-form>
+                  </el-col>
+                  <div style="background: #f8f8f5; width: 900px">
+                    <div style="">
+                      <el-button @click="addvalue()">添加规则</el-button>
+                    </div>
+                    <div style="height: 10px"></div>
+                  </div>
+                </el-row>
+              </el-form-item>
+            </el-form> -->
+            <div v-for="(v, i) in testarr" :key="i" style="background: #f8f8f5">
+              <div style="height: 10px; background: #ffffff"></div>
+              <div style="height: 10px; background: #f8f8f5"></div>
+              <el-form
+                label-width="80px"
+                ref="createIngress"
+                :rules="createIngressRules"
+                :model="hostsArr[i]"
+              >
+                <el-form-item label="主机路径" prop="path" style="width: 95%">
+                  <el-input v-model="hostsArr[i].path"></el-input>
+                </el-form-item>
+                <el-form-item
+                  label="路径类型"
+                  prop="path_type"
+                  style="width: 95%"
+                >
+                  <el-input v-model="hostsArr[i].path_type"></el-input>
+                </el-form-item>
+                <el-form-item
+                  label="SVC名字"
+                  prop="service_name"
+                  style="width: 95%"
+                >
+                  <el-input v-model="hostsArr[i].service_name"></el-input>
+                </el-form-item>
+                <el-form-item
+                  label="SVC端口"
+                  prop="service_port"
+                  style="width: 95%"
+                >
+                  <el-input v-model="hostsArr[i].service_port"></el-input>
+                </el-form-item>
+              </el-form>
+              <div style="margin-left: 420px">
+                <el-button @click="addvalue()">添加规则</el-button>
+              </div>
+              <div style="height: 15px"></div>
+            </div>
+          </el-col>
+        </el-row>
+      </template>
+      <template #footer>
+        <el-button @click="drawer = false">取消</el-button>
+        <el-button type="primary" @click="submitForm('createIngress')"
+          >立即创建</el-button
+        >
+      </template>
+    </el-drawer>
     <el-dialog title="创建Ing" v-model="scalestatus" width="25%" top="5%">
       <el-row>
         <el-col :span="24" style="display: flex; justify-content: center">
@@ -259,6 +452,7 @@ import httpClient from "../../utils/request";
 export default {
   data() {
     return {
+      testarr: [1],
       apploading: true,
       namespaceValue: "",
       namespaceList: [],
@@ -293,9 +487,186 @@ export default {
           name: "",
         },
       },
+      createIngressRules: {
+        name: [
+          {
+            required: true,
+            message: "请填写名称",
+            trigger: "change",
+          },
+        ],
+        namespace: [
+          {
+            required: true,
+            message: "请选择命名空间",
+            trigger: "change",
+          },
+        ],
+        labes_str: [
+          {
+            required: true,
+            message: "请选择类型",
+            trigger: "change",
+          },
+        ],
+        path: [
+          {
+            required: true,
+            message: "请填写路径",
+            trigger: "change",
+          },
+        ],
+        path_type: [
+          {
+            required: true,
+            message: "请填路径类型",
+            trigger: "change",
+          },
+        ],
+        service_name: [
+          {
+            required: true,
+            message: "请填写Service名字",
+            trigger: "change",
+          },
+        ],
+        service_port: [
+          {
+            required: true,
+            message: "请填写Service端口",
+            trigger: "change",
+          },
+        ],
+      },
+      createIngress: {
+        name: "",
+        namespace: "",
+        label_str: "",
+        host: "",
+        path: "",
+        path_type: "",
+        service_name: "",
+        service_port: "",
+      },
+      createIngressData: {
+        url: common.K8sCreateIngress,
+        params: {
+          name: "",
+          namespace: "",
+          label: {},
+          hosts: {},
+        },
+      },
+      //先将数组里初始化一个对象，保证索引0有key
+      hostsArr: [
+        {
+          path: "",
+          path_type: "",
+          service_name: "",
+          service_port: "",
+        },
+      ],
+      hosts: {
+        path: "",
+        path_type: "",
+        service_name: "",
+        service_port: "",
+      },
+      drawer: false,
     };
   },
   methods: {
+    addvalue() {
+      this.testarr.push(1);
+      // this.hostsArr[index] = this.hosts;
+      //往数组内追加index+1的key,用来为后面的绑定数组做准备
+      this.hostsArr.push({
+        path: "",
+        path_type: "",
+        service_name: "",
+        service_port: "",
+      });
+      console.log("xxx:", this.hostsArr);
+    },
+    //创建service对象
+    createIngressFunc() {
+      //正则匹配，验证label
+      // "(^[A-Za-z]+=[A-Za-z0-9]+).*": 表示匹配以字母开头，后跟一个或多个字母或数字的键值对形式的字符串。其中^表示匹配字符串的开始，
+      // [A-Za-z]表示匹配任意一个英文字母，+表示匹配前面的模式一次或多次，[A-Za-z0-9]表示匹配任意一个英文字母或数字，.*表示匹配任意字符零次或多次。
+      let reg = new RegExp("(^[A-Za-z]+=[A-Za-z0-9]+).*");
+      //如果不匹配
+      if (!reg.test(this.createIngress.label_str)) {
+        this.$message.warning({
+          message: "标签填写异常，请确认后重新填写",
+        });
+        return;
+      }
+      // 开启加载loading动画
+      this.fullscreenLoading = true;
+      let label = new Map();
+      // 将label_str字符串通过","进行分割，返回一个数组存储在a中：例如目前该字符串为："name=test,app=web",那么a就等于["name=test","app=web"]
+      let a = this.createIngress.label_str.split(",");
+      //遍历a数组中的每个元素
+      a.forEach((lab) => {
+        // item就是每个元素，将每个元素通过"="进行分割，得到一个子字符串数组b，例如，如果当前元素是"name=test"，则b将是["name", "test"]。
+        let b = lab.split("=");
+        // 将分割后的子字符串数组中的第一个元素作为键，第二个元素作为值，存储在上面创建的label对象(map)中。
+        label[b[0]] = b[1];
+      });
+
+      // 组装好类型一样的数据
+      this.createIngressData.params.name = this.createIngress.name;
+      this.createIngressData.params.namespace = this.createIngress.namespace;
+      this.createIngressData.params.label = label;
+      this.hosts.path = this.createIngress.path;
+      this.hosts.path_type = this.createIngress.path_type;
+      this.hosts.service_name = this.createIngress.service_name;
+      this.hosts.service_port = parseInt(this.createIngress.service_port);
+
+      this.createIngressData.hosts = console.log(
+        "组装数据：",
+        this.createIngressData.params
+      );
+
+      // 组装好数据后开始创建
+      httpClient
+        .post(this.createIngressData.url, this.createIngressData.params)
+        .then((res) => {
+          this.$message.success({
+            message: res.msg,
+          });
+          this.getSvcs();
+        })
+        .catch((res) => {
+          this.$message.error({
+            message: res.err,
+          });
+        });
+      //重置表单，无论创建成功与否，都会重置表单
+      this.resetForm("createIngress");
+      this.fullscreenLoading = false;
+      //关闭动画加载和抽屉
+      this.drawer = false;
+    },
+    //重置表单
+    resetForm(formName) {
+      //this.$refs可以获取到该表单对象所有组件的值
+      // resetFields方法可以重置表单字段的值
+      this.$refs[formName].resetFields();
+      //this.namespaceValue = "default";
+    },
+    //提交service参数
+    submitForm(formName) {
+      //验证表单的每个规则是否通过，通过则调用createIngressFunc，反之返回false
+      this.$refs[formName].validate((valid) => {
+        if (valid) {
+          this.createIngressFunc();
+          console.log("规则通过：", formName);
+        } else {
+          return false;
+        }
+      });
+    },
     //获取namespace列表
     getNamespaces() {
       httpClient
@@ -362,11 +733,12 @@ export default {
     //刷新
     refulshButton() {
       this.searchValue = "";
+      this.namespaceValue = "";
       this.getIngs();
     },
     //将创建弹出框的状态码置为true
     openbox() {
-      this.scalestatus = true;
+      this.drawer = true;
     },
     //创建ing
     createIng() {

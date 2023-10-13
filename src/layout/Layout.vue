@@ -329,8 +329,8 @@ export default {
         })
         .catch((res) => {
           console.log("报错为：", res.err);
-          this.backgroundColor = "#6c038b";
-          this.fontColor = "#E4E4E4";
+          this.backgroundColor = "#253454";
+          this.fontColor = "#EEEEEE";
         });
     },
   },
