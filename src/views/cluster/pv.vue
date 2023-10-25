@@ -37,16 +37,10 @@
         <div>
           <el-card shadow="never" :body-style="{ padding: '10px' }">
             <div>
-              <!-- row-key 用来定义行数据的key，结合expand-row-keys使用，往expandKeys中增加key来展开行 ,getRowKeys方法里面自带一个参数代表当前行对象-->
-              <!-- expand-row-keys 展开的行的key数组,只有在 expand-row-keys 中的行才会被默认展开 -->
-              <!-- expand-change 展开触发时，调用这个方法;该方法自动传入两个参数，分别是当前行对象，和当前展开行的数组 ，属于原生功能-->
               <el-table
                 :data="pvList"
                 style="width: 100%"
                 v-loading="apploading"
-                :row-key="getRowKeys"
-                :expand-row-keys="expandKeys"
-                @expand-change="expandChange"
               >
                 <el-table-column width="20" />
                 <el-table-column label="PV" align="left">
@@ -102,7 +96,7 @@
                 </el-table-column>
                 <el-table-column label="创建时间" align="center">
                   <template v-slot="scope">
-                    <span>{{
+                    <span class="time">{{
                       timeTrans(scope.row.metadata.creationTimestamp)
                     }}</span>
                   </template>
@@ -112,7 +106,7 @@
                     <!-- <el-row> -->
                     <!-- <el-col :span="4"> -->
                     <el-button
-                      disabled="true"
+                      :disabled="true"
                       type="danger"
                       icon="Delete"
                       @click="
@@ -344,3 +338,9 @@ export default {
   },
 };
 </script>
+<style>
+.time {
+  font-size: 13px;
+  color: rgb(145, 143, 143);
+}
+</style>

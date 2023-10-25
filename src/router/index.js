@@ -49,9 +49,9 @@ const routes = [
       },
       {
         path: "/cluster/pv", //视图,访问子页面的时候会带上layout布局页面
-        name: "PV",
+        name: "PersistentVolumes",
         // icon: "view", //图标
-        meta: { title: "PV", requireAuth: true },
+        meta: { title: "PersistentVolumes", requireAuth: true },
         component: () => import("@/views/cluster/pv.vue"), //视图组件
       },
     ],
@@ -141,9 +141,9 @@ const routes = [
       },
       {
         path: "/storconf/pvc", //视图,访问子页面的时候会带上layout布局页面
-        name: "PVC",
+        name: "PersistentVolumeClaims",
         // icon: "Pear", //图标
-        meta: { title: "PVC", requireAuth: true },
+        meta: { title: "PersistentVolumeClaims", requireAuth: true },
         component: () => import("@/views/storconf/pvc.vue"), //视图组件
       },
     ],

@@ -79,16 +79,10 @@
         <div>
           <el-card shadow="never" :body-style="{ padding: '10px' }">
             <div>
-              <!-- row-key 用来定义行数据的key，结合expand-row-keys使用，往expandKeys中增加key来展开行 ,getRowKeys方法里面自带一个参数代表当前行对象-->
-              <!-- expand-row-keys 展开的行的key数组,只有在 expand-row-keys 中的行才会被默认展开 -->
-              <!-- expand-change 展开触发时，调用这个方法;该方法自动传入两个参数，分别是当前行对象，和当前展开行的数组 ，属于原生功能-->
               <el-table
                 :data="ingList"
                 style="width: 100%"
                 v-loading="apploading"
-                :row-key="getRowKeys"
-                :expand-row-keys="expandKeys"
-                @expand-change="expandChange"
               >
                 <el-table-column width="20" />
                 <el-table-column label="Ingress" align="left">
@@ -130,76 +124,90 @@
                 </el-table-column>
                 <el-table-column label="address" align="center">
                   <template v-slot="scope">
-                    <span
-                      type=""
-                      v-if="
-                        scope.row.metadata.annotations[
-                          'field.cattle.io/publicEndpoints'
-                        ]
-                      "
-                      >{{
-                        strToObj(
-                          scope.row.metadata.annotations[
-                            "field.cattle.io/publicEndpoints"
-                          ]
-                        )[0].addresses[0]
-                      }}</span
-                    >
+                    <div v-for="(v, k) in scope.row.metadata" :key="k">
+                      <div v-if="k == 'annotations'">
+                        <div
+                          v-for="(cv, ck) in scope.row.metadata.annotations"
+                          :key="ck"
+                        >
+                          <div v-if="ck == 'field.cattle.io/publicEndpoints'">
+                            <span type="">{{
+                              strToObj(
+                                scope.row.metadata.annotations[
+                                  "field.cattle.io/publicEndpoints"
+                                ]
+                              )[0].addresses[0]
+                            }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </template>
                 </el-table-column>
                 <el-table-column label="端口" align="center">
                   <template v-slot="scope">
-                    <div
-                      v-if="
-                        scope.row.metadata.annotations[
-                          'field.cattle.io/publicEndpoints'
-                        ]
-                      "
-                    >
-                      <el-tag
-                        type=""
-                        v-if="
-                          strToObj(
-                            scope.row.metadata.annotations[
-                              'field.cattle.io/publicEndpoints'
-                            ]
-                          )[0].port != 80
-                        "
-                        >80,
-                        {{
-                          strToObj(
-                            scope.row.metadata.annotations[
-                              "field.cattle.io/publicEndpoints"
-                            ]
-                          )[0].port
-                        }}</el-tag
-                      >
-                      <el-tag type="" v-else>80</el-tag>
+                    <div v-for="(v, k) in scope.row.metadata" :key="k">
+                      <div v-if="k == 'annotations'">
+                        <div
+                          v-for="(cv, ck) in scope.row.metadata.annotations"
+                          :key="ck"
+                        >
+                          <div v-if="ck == 'field.cattle.io/publicEndpoints'">
+                            <el-tag
+                              type=""
+                              v-if="
+                                strToObj(
+                                  scope.row.metadata.annotations[
+                                    'field.cattle.io/publicEndpoints'
+                                  ]
+                                )[0].port != 80
+                              "
+                              >80,
+                              {{
+                                strToObj(
+                                  scope.row.metadata.annotations[
+                                    "field.cattle.io/publicEndpoints"
+                                  ]
+                                )[0].port
+                              }}</el-tag
+                            >
+                            <el-tag type="" v-else>80</el-tag>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </template>
                 </el-table-column>
                 <el-table-column label="创建时间" align="center">
                   <template v-slot="scope">
-                    <span>{{
+                    <span class="time">{{
                       timeTrans(scope.row.metadata.creationTimestamp)
                     }}</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" align="center" width="200">
+                <el-table-column label="操作" align="center" width="300">
                   <template v-slot="scope">
                     <!-- <el-row> -->
                     <!-- <el-col :span="4"> -->
-                    <el-button
-                      disabled="true"
-                      type="danger"
-                      icon="Delete"
-                      @click="
-                        handleConfirm(scope.row.metadata.name, '删除', deletePv)
-                      "
-                      >删除</el-button
-                    >
-                    <!-- </el-col>
+                    <div>
+                      <el-button
+                        type="primary"
+                        icon="Edit"
+                        plain
+                        @click="
+                          getIngressDetail(scope.row), (yamlDialog = true)
+                        "
+                        >YAML</el-button
+                      >
+                      <el-button
+                        type="danger"
+                        icon="Delete"
+                        @click="handleConfirm(scope.row, '删除', deleteIng)"
+                        >删除</el-button
+                      >
+                      <!-- </el-col>
                         </el-row> -->
+                    </div>
                   </template>
                 </el-table-column>
                 <el-table-column>
@@ -262,7 +270,7 @@
       :before-close="handleClose"
     >
       <!-- 插槽：抽屉标题  -->
-      <template #title>
+      <template #header>
         <span style="font-weight: bold; font-size: 18px">创建Ingress</span>
       </template>
       <!-- 插槽，抽屉body，填写表单属性 -->
@@ -315,73 +323,16 @@
                   placeholder="示例：app=test,name=test"
                 ></el-input>
               </el-form-item>
-              <el-form-item label="域名" prop="type" style="width: 100%">
+              <el-form-item label="域名" prop="host" style="width: 100%">
                 <el-input v-model="createIngress.host"></el-input>
               </el-form-item>
             </el-form>
-            <!-- 规则表单（独立） -->
-
-            <!-- <el-form
-              label-width="2px"
-              ref="createIngress"
-              :rules="createIngressRules"
-              :model="testarr"
-              v-for="i in testarr"
-              :key="i"
-            >
-              <el-form-item label="" prop="" style="width: 100%">
-                <el-row>
-                  <el-col>
-                    <el-form
-                      ref="createIngress"
-                      :rules="createIngressRules"
-                      :model="hosts"
-                    >
-                      <el-form-item
-                        label="主机路径"
-                        prop="path"
-                        style="width: 90%"
-                      >
-                        <el-input v-model="hosts.path"></el-input>
-                      </el-form-item>
-                      <el-form-item
-                        label="路径类型"
-                        prop="path_type"
-                        style="width: 90%"
-                      >
-                        <el-input v-model="hosts.path_type"></el-input>
-                      </el-form-item>
-                      <el-form-item
-                        label="SVC名字"
-                        prop="service_name"
-                        style="width: 90%"
-                      >
-                        <el-input v-model="hosts.service_name"></el-input>
-                      </el-form-item>
-                      <el-form-item
-                        label="SVC端口"
-                        prop="service_port"
-                        style="width: 90%"
-                      >
-                        <el-input v-model="hosts.service_port"></el-input>
-                      </el-form-item>
-                    </el-form>
-                  </el-col>
-                  <div style="background: #f8f8f5; width: 900px">
-                    <div style="">
-                      <el-button @click="addvalue()">添加规则</el-button>
-                    </div>
-                    <div style="height: 10px"></div>
-                  </div>
-                </el-row>
-              </el-form-item>
-            </el-form> -->
             <div v-for="(v, i) in testarr" :key="i" style="background: #f8f8f5">
               <div style="height: 10px; background: #ffffff"></div>
               <div style="height: 10px; background: #f8f8f5"></div>
               <el-form
                 label-width="80px"
-                ref="createIngress"
+                ref="createIngressHost"
                 :rules="createIngressRules"
                 :model="hostsArr[i]"
               >
@@ -393,14 +344,32 @@
                   prop="path_type"
                   style="width: 95%"
                 >
-                  <el-input v-model="hostsArr[i].path_type"></el-input>
+                  <!-- <el-input v-model="hostsArr[i].path_type"></el-input> -->
+                  <el-select
+                    v-model="hostsArr[i].path_type"
+                    filterable
+                    placeholder="请选择"
+                    style="width: 100%"
+                  >
+                    <el-option
+                      v-for="(t, i) in createIngress.path_types"
+                      :key="i"
+                      :label="t"
+                      :value="t"
+                    >
+                    </el-option>
+                  </el-select>
                 </el-form-item>
                 <el-form-item
                   label="SVC名字"
                   prop="service_name"
                   style="width: 95%"
                 >
-                  <el-input v-model="hostsArr[i].service_name"></el-input>
+                  <!-- @blur: 鼠标失去聚焦触发 -->
+                  <el-input
+                    v-model="hostsArr[i].service_name"
+                    @blur="getSvcs(hostsArr[i].service_name)"
+                  ></el-input>
                 </el-form-item>
                 <el-form-item
                   label="SVC端口"
@@ -411,7 +380,13 @@
                 </el-form-item>
               </el-form>
               <div style="margin-left: 420px">
-                <el-button @click="addvalue()">添加规则</el-button>
+                <el-button
+                  @click="
+                    addvalue();
+                    submitForm('createIngressHost');
+                  "
+                  >添加规则</el-button
+                >
               </div>
               <div style="height: 15px"></div>
             </div>
@@ -419,13 +394,20 @@
         </el-row>
       </template>
       <template #footer>
-        <el-button @click="drawer = false">取消</el-button>
+        <el-button
+          @click="
+            drawer = false;
+            resetForm('createIngress');
+            resetForm('createIngressHost');
+          "
+          >取消</el-button
+        >
         <el-button type="primary" @click="submitForm('createIngress')"
           >立即创建</el-button
         >
       </template>
     </el-drawer>
-    <el-dialog title="创建Ing" v-model="scalestatus" width="25%" top="5%">
+    <!-- <el-dialog title="创建Ing" v-model="scalestatus" width="25%" top="5%">
       <el-row>
         <el-col :span="24" style="display: flex; justify-content: center">
           <span style="display: flex; align-items: center; font-size: 16px"
@@ -443,17 +425,39 @@
           <el-button type="primary" @click="createIng">确 定</el-button>
         </span>
       </template>
+    </el-dialog> -->
+    <!-- yaml编辑器 -->
+    <el-dialog title="YAML信息" v-model="yamlDialog" width="45%" top="5%">
+      <!--:options 编辑器的配置  -->
+      <!-- @change 内容变化后会触发 -->
+      <codemirror
+        :value="contentYaml"
+        border
+        :options="cmOptions"
+        height="500"
+        style="font-size: 14px"
+        @change="onChange"
+      ></codemirror>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="yamlDialog = false">取 消</el-button>
+          <el-button type="primary" @click="updateIngress()">更 新</el-button>
+        </span>
+      </template>
     </el-dialog>
   </div>
 </template>
 <script>
 import common from "../common/Config";
 import httpClient from "../../utils/request";
+import yaml2obj from "js-yaml";
+import json2yaml from "json2yaml";
 export default {
   data() {
     return {
+      direction: "rtl",
       testarr: [1],
-      apploading: true,
+      apploading: false,
       namespaceValue: "",
       namespaceList: [],
       namespaceListUrl: common.k8sNamespaceList,
@@ -482,11 +486,13 @@ export default {
       scalestatus: false,
       ing: "",
       deleteIngData: {
-        url: common.K8sDeleteIng,
+        url: common.K8sDeleteIngress,
         params: {
           name: "",
+          namespace: "",
         },
       },
+
       createIngressRules: {
         name: [
           {
@@ -502,10 +508,17 @@ export default {
             trigger: "change",
           },
         ],
-        labes_str: [
+        label_str: [
           {
             required: true,
-            message: "请选择类型",
+            message: "请填写标签",
+            trigger: "change",
+          },
+        ],
+        host: [
+          {
+            required: true,
+            message: "请填写域名",
             trigger: "change",
           },
         ],
@@ -519,7 +532,7 @@ export default {
         path_type: [
           {
             required: true,
-            message: "请填路径类型",
+            message: "请填写路径类型",
             trigger: "change",
           },
         ],
@@ -543,11 +556,18 @@ export default {
         namespace: "",
         label_str: "",
         host: "",
-        path: "",
-        path_type: "",
-        service_name: "",
-        service_port: "",
+        path_types: ["Exact", "Prefix", "ImplementationSpecific"],
       },
+      //先将数组里初始化一个对象，保证索引0有key
+      hostsArr: [
+        {
+          path: "",
+          path_type: "ImplementationSpecific",
+          service_name: "",
+          service_port: "",
+        },
+      ],
+      ingressHosts: [],
       createIngressData: {
         url: common.K8sCreateIngress,
         params: {
@@ -557,39 +577,209 @@ export default {
           hosts: {},
         },
       },
-      //先将数组里初始化一个对象，保证索引0有key
-      hostsArr: [
-        {
-          path: "",
-          path_type: "",
-          service_name: "",
-          service_port: "",
-        },
-      ],
-      hosts: {
-        path: "",
-        path_type: "",
-        service_name: "",
-        service_port: "",
-      },
       drawer: false,
+      //更新
+      updateIngressData: {
+        url: common.K8sUpdateIngress,
+        params: {
+          namespace: "",
+          content: "",
+        },
+      },
+      //编辑器配置
+      cmOptions: common.cmOptions,
+      //详情
+      contentYaml: "",
+      yamlDialog: false,
+      ingressDetail: {},
+      ingressDetailData: {
+        url: common.K8sGetIngressDetail,
+        params: {
+          name: "",
+          namespace: "",
+        },
+      },
+      getSvcData: {
+        url: common.K8sGetSvcs,
+        params: {
+          name: "",
+          namespace: "",
+          limit: 10,
+          page: 1,
+        },
+      },
     };
   },
   methods: {
+    handleClose(done) {
+      this.$confirm("还有未保存的工作哦确定关闭吗？")
+        .then((_) => {
+          done();
+        })
+        .catch((_) => {});
+    },
+    alertInfo(name) {
+      this.$alert("请先创建Service " + name, "提示", {
+        confirmButtonText: "确定",
+        // callback: (action) => {
+        //   // this.$message({
+        //   //   type: "info",
+        //   //   message: `action: ${action}`,
+        //   // });
+        // },
+      });
+    },
+    //获取svc列表
+    getSvcs(name) {
+      this.getSvcData.params.name = name;
+      this.getSvcData.params.namespace = this.createIngress.namespace;
+      this.getSvcData.params.page = this.currentPage;
+      this.getSvcData.params.limit = this.pagesize;
+      this.apploading = true;
+      console.log("需要获取的svc是：", this.getSvcData.params);
+
+      httpClient
+        .get(this.getSvcData.url, {
+          params: this.getSvcData.params,
+        })
+        .then((res) => {
+          // this.svcList = res.data.services;
+          // this.svctotal = res.data.total;
+          console.log("获取到svc个数为：", this.svctotal);
+          this.apploading = false;
+          if (res.data.total < 1) {
+            this.alertInfo(name);
+          }
+        })
+        .catch((res) => {
+          console.log("报错为：", res.err);
+          //this.apploading = false;
+        });
+    },
+    //yaml内容变化后调用,val不用传入，自动会获取更新后的yaml内容
+    onChange(val) {
+      this.contentYaml = val;
+    },
+    //json转yaml
+    jsontoyaml(jsondata) {
+      return json2yaml.stringify(jsondata);
+    },
+    //yaml转对象
+    yamltoObj(yamldata) {
+      return yaml2obj.load(yamldata);
+    },
+    //更新ingress
+    updateIngress() {
+      console.log("准备更新了：", this.contentYaml);
+      this.updateIngressData.params.namespace = this.namespaceValue;
+      // 先将yaml转为对象，再将对象通过JSON.stringify转为json类型数据
+      this.updateIngressData.params.content = JSON.stringify(
+        yaml2obj.load(this.contentYaml)
+      );
+      httpClient
+        .put(this.updateIngressData.url, this.updateIngressData.params)
+        .then((res) => {
+          this.$message({
+            type: "success",
+            message: name + res.msg,
+          });
+          // 更新完yaml之后，获取最新的数据
+          this.getIngs();
+        })
+        .catch((res) => {
+          this.$message({
+            type: "info",
+            message: name + res.err,
+          });
+        })
+        .finally(() => {
+          this.yamlDialog = false;
+        });
+    },
+    //获取ingress详情
+    getIngressDetail(obj) {
+      //console.log("获取详情的为：", obj.metadata.name);
+      this.ingressDetailData.params.name = obj.metadata.name;
+      if (this.namespaceValue != "") {
+        this.ingressDetailData.params.namespace = this.namespaceValue;
+      }
+      this.ingressDetailData.params.namespace = obj.metadata.namespace;
+      console.log("准备获取详情的是：", this.ingressDetailData.params);
+      httpClient
+        .get(this.ingressDetailData.url, {
+          params: this.ingressDetailData.params,
+        })
+        .then((res) => {
+          console.log("ingress详情为：", res.data);
+          this.contentYaml = this.jsontoyaml(res.data);
+          this.yamlDialog = true;
+          console.log("ingress详情YAML为：", this.jsontoyaml(res.data));
+        })
+        .catch((res) => {
+          console.log("获取详情失败：", res.err);
+        });
+    },
+    submitForm2(name) {
+      console.log("获取到ref: ", this.$refs[name]);
+      this.$refs[name][0].validate((valid) => {
+        if (valid) {
+          //this.createIngressFunc();
+          console.log("规则通过：", name);
+        } else {
+          console.log("规则不通过：", name);
+          return false;
+        }
+      });
+    },
     addvalue() {
       this.testarr.push(1);
       // this.hostsArr[index] = this.hosts;
-      //往数组内追加index+1的key,用来为后面的绑定数组做准备
+      //往数组内追加index+1的所有key,用来为后面的绑定数组做准备
       this.hostsArr.push({
         path: "",
-        path_type: "",
+        path_type: "ImplementationSpecific",
         service_name: "",
         service_port: "",
       });
-      console.log("xxx:", this.hostsArr);
+      //console.log("xxx:", this.hostsArr);
     },
-    //创建service对象
+    //提交ingress参数
+    submitForm(formName) {
+      console.log("准备校验：", this.$refs[formName]);
+      //验证表单的每个规则是否通过，通过则调用createIngressFunc，反之返回false
+      //this.$refs.innerForms[1];
+      let inner = this.$refs[formName];
+      let flag = 0;
+      if (formName == "createIngressHost") {
+        inner = this.$refs[formName][0]; //如果是第二个表单需要用refs去操作的话，必须得加上索引进行指定
+      } else {
+        flag = 1;
+      }
+      inner.validate((valid) => {
+        if (valid) {
+          //this.createIngressFunc();
+          this.rulesActions(flag);
+          console.log("规则通过：", formName);
+        } else {
+          console.log("规则不通过：", formName);
+          return false;
+        }
+      });
+    },
+    rulesActions(flag, hosts) {
+      if (flag == 1) {
+        this.createIngressFunc();
+      }
+    },
+    hostsArrUpdate(hosts) {
+      hosts.service_port = parseInt(hosts.service_port, 10);
+
+      // this.ingressHosts.push(hosts);
+      // console.log("插入数组：", this.ingressHosts);
+    },
+    //创建ingress对象
     createIngressFunc() {
+      console.log("准备创建ingress规则为：", this.hostsArr);
       //正则匹配，验证label
       // "(^[A-Za-z]+=[A-Za-z0-9]+).*": 表示匹配以字母开头，后跟一个或多个字母或数字的键值对形式的字符串。其中^表示匹配字符串的开始，
       // [A-Za-z]表示匹配任意一个英文字母，+表示匹配前面的模式一次或多次，[A-Za-z0-9]表示匹配任意一个英文字母或数字，.*表示匹配任意字符零次或多次。
@@ -618,15 +808,20 @@ export default {
       this.createIngressData.params.name = this.createIngress.name;
       this.createIngressData.params.namespace = this.createIngress.namespace;
       this.createIngressData.params.label = label;
-      this.hosts.path = this.createIngress.path;
-      this.hosts.path_type = this.createIngress.path_type;
-      this.hosts.service_name = this.createIngress.service_name;
-      this.hosts.service_port = parseInt(this.createIngress.service_port);
-
-      this.createIngressData.hosts = console.log(
-        "组装数据：",
-        this.createIngressData.params
-      );
+      this.createIngressData.params.hosts[this.createIngress.host] =
+        this.hostsArr;
+      for (let i in this.createIngressData.params.hosts[
+        this.createIngress.host
+      ]) {
+        this.createIngressData.params.hosts[this.createIngress.host][
+          i
+        ].service_port = parseInt(
+          this.createIngressData.params.hosts[this.createIngress.host][i]
+            .service_port,
+          10
+        );
+      }
+      console.log("组装好数据为：", this.createIngressData.params);
 
       // 组装好数据后开始创建
       httpClient
@@ -635,38 +830,36 @@ export default {
           this.$message.success({
             message: res.msg,
           });
-          this.getSvcs();
+          this.getIngs();
         })
         .catch((res) => {
           this.$message.error({
             message: res.err,
           });
+        })
+        //.finally无论成功与否都会执行
+        .finally(() => {
+          //重置表单，无论创建成功与否，都会重置表单
+          this.resetForm("createIngress");
+          this.resetForm("createIngressHost");
+          this.fullscreenLoading = false;
+          //关闭动画加载和抽屉
+          this.drawer = false;
         });
-      //重置表单，无论创建成功与否，都会重置表单
-      this.resetForm("createIngress");
-      this.fullscreenLoading = false;
-      //关闭动画加载和抽屉
-      this.drawer = false;
     },
     //重置表单
     resetForm(formName) {
       //this.$refs可以获取到该表单对象所有组件的值
       // resetFields方法可以重置表单字段的值
-      this.$refs[formName].resetFields();
-      //this.namespaceValue = "default";
+      // this.$refs[formName].resetFields();
+      let inner = this.$refs[formName];
+      if (formName == "createIngressHost") {
+        inner = this.$refs[formName][0];
+      }
+      inner.resetFields();
+      this.testarr = [1];
     },
-    //提交service参数
-    submitForm(formName) {
-      //验证表单的每个规则是否通过，通过则调用createIngressFunc，反之返回false
-      this.$refs[formName].validate((valid) => {
-        if (valid) {
-          this.createIngressFunc();
-          console.log("规则通过：", formName);
-        } else {
-          return false;
-        }
-      });
-    },
+
     //获取namespace列表
     getNamespaces() {
       httpClient
@@ -701,9 +894,8 @@ export default {
       this.getIngData.params.namespace = this.namespaceValue;
       this.getIngData.params.limit = this.pagesize;
       this.getIngData.params.page = this.currentPage;
-
       console.log("开始获取：", this.getIngData.params);
-      //   this.apploading = true;
+      this.apploading = true;
       httpClient
         .get(this.getIngData.url, {
           params: this.getIngData.params,
@@ -712,11 +904,12 @@ export default {
           this.ingList = res.data.items;
           this.ingtotal = res.data.total;
           console.log("获取到：", this.ingList, this.ingtotal);
-          this.apploading = false;
         })
         .catch((res) => {
           console.log("报错为：", res.err);
-          //this.apploading = false;
+        })
+        .finally(() => {
+          this.apploading = false;
         });
     },
     //分页
@@ -747,9 +940,10 @@ export default {
       this.scalestatus = false;
     },
     //删除ing
-    deleteIng(ing) {
-      console.log("要删除的namespoace是：", ing);
-      this.deleteIngData.params.name = ing;
+    deleteIng(row) {
+      console.log("要删除的name是：", row.metadata.name);
+      this.deleteIngData.params.name = row.metadata.name;
+      this.deleteIngData.params.namespace = row.metadata.namespace;
       httpClient
         .delete(this.deleteIngData.url, {
           params: this.deleteIngData.params,
@@ -757,20 +951,21 @@ export default {
         .then((res) => {
           this.$message({
             type: "success",
-            message: ing + "删除成功",
+            message: row.metadata.name + "删除成功",
           });
+          this.getIngs();
         })
         .catch((res) => {
           this.$message({
-            type: "info",
-            message: ing + "删除失败",
+            type: "error",
+            message: row.metadata.name + "删除失败",
           });
         });
     },
     //操作类提示框：重启、删除..
-    handleConfirm(name, play, playFunc) {
+    handleConfirm(row, play, playFunc) {
       this.$confirm(
-        "确认继续" + play + "Deployment [" + name + "] 操作吗？",
+        "确认继续" + play + "Ingress [" + row.metadata.name + "] 操作吗？",
         "提示",
         {
           confirmButtonText: "确定",
@@ -780,10 +975,10 @@ export default {
         }
       )
         .then(() => {
-          playFunc(name);
+          playFunc(row);
           this.$message({
             type: "success",
-            message: name + "已" + play,
+            message: row.metadata.name + "已" + play,
           });
         })
         .catch(() => {
@@ -795,6 +990,7 @@ export default {
     },
     //字符串转对象
     strToObj(str) {
+      console.log("debug: ", str);
       return JSON.parse(str);
     },
   },
@@ -843,5 +1039,9 @@ export default {
   cursor: pointer;
   font-weight: bold;
   font-size: 16px;
+}
+.time {
+  font-size: 13px;
+  color: rgb(145, 143, 143);
 }
 </style>

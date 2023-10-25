@@ -79,19 +79,13 @@
         <div>
           <el-card shadow="never" :body-style="{ padding: '10px' }">
             <div>
-              <!-- row-key 用来定义行数据的key，结合expand-row-keys使用，往expandKeys中增加key来展开行 ,getRowKeys方法里面自带一个参数代表当前行对象-->
-              <!-- expand-row-keys 展开的行的key数组,只有在 expand-row-keys 中的行才会被默认展开 -->
-              <!-- expand-change 展开触发时，调用这个方法;该方法自动传入两个参数，分别是当前行对象，和当前展开行的数组 ，属于原生功能-->
               <el-table
                 :data="svcList"
                 style="width: 100%"
                 v-loading="apploading"
-                :row-key="getRowKeys"
-                :expand-row-keys="expandKeys"
-                @expand-change="expandChange"
               >
                 <el-table-column width="20" />
-                <el-table-column label="Svc" align="left">
+                <el-table-column label="Service" align="left">
                   <template v-slot="scope">
                     <span
                       style="color: rgb(62, 165, 233)"
@@ -145,7 +139,7 @@
                 </el-table-column>
                 <el-table-column label="创建时间" align="center">
                   <template v-slot="scope">
-                    <span>{{
+                    <span class="time">{{
                       timeTrans(scope.row.metadata.creationTimestamp)
                     }}</span>
                   </template>
@@ -248,7 +242,7 @@
       :before-close="handleClose"
     >
       <!-- 插槽：抽屉标题  -->
-      <template #title>
+      <template #header>
         <span style="font-weight: bold; font-size: 18px">创建Service</span>
       </template>
       <!-- 插槽，抽屉body，填写表单属性 -->
@@ -350,7 +344,13 @@
         </el-row>
       </template>
       <template #footer>
-        <el-button @click="drawer = false">取消</el-button>
+        <el-button
+          @click="
+            drawer = false;
+            resetForm('createService');
+          "
+          >取消</el-button
+        >
         <el-button type="primary" @click="submitForm('createService')"
           >立即创建</el-button
         >
@@ -364,6 +364,7 @@ import httpClient from "../../utils/request";
 export default {
   data() {
     return {
+      direction: "rtl",
       apploading: true,
       namespaceValue: "",
       namespaceList: [],
@@ -451,7 +452,7 @@ export default {
         name: "",
         namespace: "",
         type: "",
-        container_port: "0",
+        container_port: "",
         port: "",
         node_port: "",
         label_str: "",
@@ -734,5 +735,9 @@ export default {
   cursor: pointer;
   font-weight: bold;
   font-size: 16px;
+}
+.time {
+  font-size: 13px;
+  color: rgb(145, 143, 143);
 }
 </style>

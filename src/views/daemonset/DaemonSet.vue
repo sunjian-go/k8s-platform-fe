@@ -177,7 +177,7 @@
               </el-table-column>
               <el-table-column label="创建时间" align="center">
                 <template v-slot="scope">
-                  <span>{{
+                  <span class="time">{{
                     timeTrans(scope.row.metadata.creationTimestamp)
                   }}</span>
                 </template>
@@ -283,7 +283,7 @@
       :before-close="handleClose"
     >
       <!-- 插槽：抽屉标题  -->
-      <template #title>
+      <template #header>
         <span style="font-weight: bold; font-size: 18px">创建DaemonSet</span>
       </template>
       <!-- 插槽，抽屉body，填写表单属性 -->
@@ -963,5 +963,9 @@ export default {
   cursor: pointer;
   font-weight: bold;
   font-size: 16px;
+}
+.time {
+  font-size: 13px;
+  color: rgb(145, 143, 143);
 }
 </style>

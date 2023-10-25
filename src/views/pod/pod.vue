@@ -239,7 +239,7 @@
                 </el-table-column>
                 <el-table-column label="创建时间" align="center">
                   <template v-slot="scope">
-                    <span>{{
+                    <span class="time">{{
                       timeTrans(scope.row.metadata.creationTimestamp)
                     }}</span>
                   </template>
@@ -996,5 +996,9 @@ export default {
   height: 600px;
   overflow: auto;
   background-color: rgb(12, 12, 12);
+}
+.time {
+  font-size: 13px;
+  color: rgb(145, 143, 143);
 }
 </style>

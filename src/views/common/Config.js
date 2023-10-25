@@ -59,7 +59,28 @@ export default {
   K8sCreateIngress: "http://127.0.0.1:8999/api/networking/createing",
   K8sDeleteIngress: "http://127.0.0.1:8999/api/networking/deleteing",
   K8sUpdateIngress: "http://127.0.0.1:8999/api/networking/updateing",
-
+  //cm
+  K8sGetConfigMaps: "http://127.0.0.1:8999/api/corev1/getcms",
+  K8sGetConfigMapDetail: "http://127.0.0.1:8999/api/corev1/getcmdetail",
+  K8sDeleteConfigMap: "http://127.0.0.1:8999/api/corev1/deletecm",
+  K8sUpdateConfigMap: "http://127.0.0.1:8999/api/corev1/updatecm",
+  //secret
+  K8sGetSecrets: "http://127.0.0.1:8999/api/corev1/getsecrets",
+  K8sGetSecretDetail: "http://127.0.0.1:8999/api/corev1/getsecretdetail",
+  K8sDeleteSecret: "http://127.0.0.1:8999/api/corev1/deletesecret",
+  K8sUpdateSecret: "http://127.0.0.1:8999/api/corev1/updatesecret",
+  //PVC
+  K8sGetPvcs: "http://127.0.0.1:8999/api/corev1/getpvcs",
+  K8sGetPvcDetail: "http://127.0.0.1:8999/api/corev1/getpvcdetail",
+  K8sDeletePvc: "http://127.0.0.1:8999/api/corev1/deletepvc",
+  K8sUpdatePvc: "http://127.0.0.1:8999/api/corev1/updatepvc",
+  //workflow
+  K8sGetWorkflows: "http://127.0.0.1:8999/api/workflow/getworkflows",
+  K8sGetById: "http://127.0.0.1:8999/api/workflow/getbyid",
+  K8sDelById: "http://127.0.0.1:8999/api/workflow/delbyid/:id",
+  K8sCreateWorkflow: "http://127.0.0.1:8999/api/workflow/createworkflow",
+  //namespace中所有资源数量
+  K8sGetAllResources: "http://127.0.0.1:8999/api/resources",
   //编辑器配置
   cmOptions: {
     mode: "text/yaml", //编辑器的内容格式

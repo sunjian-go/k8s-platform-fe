@@ -162,14 +162,14 @@
                     <span
                       >{{ scope.row.spec.template.spec.containers.length }}/{{
                         index + 1
-                      }}: {{ len }}{{ val.name }}</span
+                      }}: {{ val.name }}</span
                     >
                   </div>
                 </template>
               </el-table-column>
               <el-table-column label="创建时间" align="center">
                 <template v-slot="scope">
-                  <span>{{
+                  <span class="time">{{
                     timeTrans(scope.row.metadata.creationTimestamp)
                   }}</span>
                 </template>
@@ -287,7 +287,7 @@
       :before-close="handleClose"
     >
       <!-- 插槽：抽屉标题  -->
-      <template #title>
+      <template #header>
         <span style="font-weight: bold; font-size: 18px">创建Deployment</span>
       </template>
       <!-- 插槽，抽屉body，填写表单属性 -->
@@ -468,11 +468,7 @@ import common from "../common/Config";
 import httpClient from "../../utils/request";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
-// 必须导入
-//import JsonEditorVue from "json-editor-vue3";
-//import { codemirror } from "codemirror-editor-vue3";
 export default {
-  //components: { codemirror },
   data() {
     return {
       namespaceValue: "",
@@ -953,7 +949,7 @@ export default {
     },
     //yaml转对象
     yamltoObj(yamldata) {
-      return yaml2obj.load(yaml2obj);
+      return yaml2obj.load(yamldata);
     },
     //yaml内容变化后调用,val不用传入，自动会获取更新后的yaml内容
     onChange(val) {
@@ -1015,5 +1011,9 @@ cursor: pointer;：这行代码将鼠标指针的样式设置为指针形状，�
   cursor: pointer;
   font-weight: bold;
   font-size: 16px;
+}
+.time {
+  font-size: 13px;
+  color: rgb(145, 143, 143);
 }
 </style>
