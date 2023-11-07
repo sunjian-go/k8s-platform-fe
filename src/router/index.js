@@ -10,7 +10,7 @@ import axios from "axios";
 //路由规则
 const routes = [
   {
-    path: "/layout",
+    path: "/home",
     component: Layout,
     icon: "odometer",
     children: [
@@ -21,6 +21,21 @@ const routes = [
         icon: "odometer", //图标
         meta: { title: "概要", requireAuth: true },
         component: () => import("@/views/home/Home.vue"), //视图组件
+      },
+    ],
+  },
+  {
+    path: "/workflow",
+    component: Layout,
+    icon: "Basketball",
+    children: [
+      //配置子页面
+      {
+        path: "/workflow", //视图,访问子页面的时候会带上layout布局页面
+        name: "工作流",
+        icon: "Basketball", //图标
+        meta: { title: "工作流", requireAuth: true },
+        component: () => import("@/views/home/Workflow.vue"), //视图组件
       },
     ],
   },

@@ -81,6 +81,11 @@ export default {
   K8sCreateWorkflow: "http://127.0.0.1:8999/api/workflow/createworkflow",
   //namespace中所有资源数量
   K8sGetAllResources: "http://127.0.0.1:8999/api/resources",
+  //workflow
+  K8sGetWorkflows: "http://127.0.0.1:8999/api/workflow/getworkflows",
+  K8sGetWorkflowById: "http://127.0.0.1:8999/api/workflow/getbyid",
+  K8sDeleteWorkflowById: "http://127.0.0.1:8999/api/workflow/delbyid/",
+  K8sCreateWorkflow: "http://127.0.0.1:8999/api/workflow/createworkflow",
   //编辑器配置
   cmOptions: {
     mode: "text/yaml", //编辑器的内容格式

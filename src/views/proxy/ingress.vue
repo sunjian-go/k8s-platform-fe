@@ -766,7 +766,7 @@ export default {
         }
       });
     },
-    rulesActions(flag, hosts) {
+    rulesActions(flag) {
       if (flag == 1) {
         this.createIngressFunc();
       }

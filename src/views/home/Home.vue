@@ -31,7 +31,7 @@
               <div>
                 <p>实例数 (Pod)</p>
                 <p class="home-node-card-num">
-                  {{ podTotal }}
+                  {{ podTotalNum }}
                 </p>
               </div>
             </el-card>
@@ -185,7 +185,7 @@ export default {
       podTotal: 0,
       activeNamespaceNum: 0,
       namespaceTotal: 0,
-      podTotal: 0,
+      podTotalNum: 0,
       svcTotal: 0,
       getNodesData: {
         url: common.K8sGetNodeList,
@@ -217,22 +217,7 @@ export default {
     };
   },
   methods: {
-    //获取每个namespace中pod的数量
-    // getPodNumNp() {
-    //   httpClient
-    //     .get(this.podNumNpData.url)
-    //     .then((res) => {
-    //       console.log("获取到的为:", res.data);
-    //       this.podNumNp = res.data;
-    //       //echarts作图
-    //       this.getPodNumDash();
-    //     })
-    //     .catch((res) => {
-    //       this.$message.error({
-    //         message: "获取pod信息失败" + res.err,
-    //       });
-    //     });
-    // },
+    //获取namespace中所有资源
     getAllResourceNum() {
       this.dashLoading = true;
       httpClient
@@ -277,7 +262,7 @@ export default {
           "#9FE6B8",
           "#FFDB5C",
           "#ff9f7f",
-          "#fb7293",
+          "#F72727",
           "#E062AE",
           "#E690D1",
           "#e7bcf3",
@@ -410,121 +395,12 @@ export default {
         ],
       });
     },
-    // getdeploymentNumNp() {
-    //   httpClient
-    //     .get(this.deploymentNumNpData.url)
-    //     .then((res) => {
-    //       console.log("获取到的deployments为:", res.data);
-    //       this.deploymentNumNp = res.data;
-    //       //echarts作图
-    //       // this.getDeploymentNumDash();
-    //     })
-    //     .catch((res) => {
-    //       this.$message.error({
-    //         message: "获取pod信息失败" + res.err,
-    //       });
-    //     });
-    // },
-    // getDeploymentNumDash() {
-    //   //若实例已经初始化了，则销毁实例
-    //   if (
-    //     this.deployNumDash != null &&
-    //     this.deployNumDash != "" &&
-    //     this.deployNumDash != undefined
-    //   ) {
-    //     this.deployNumDash.dispose();
-    //   }
-    //   //初始化实例，绑定到dom上
-    //   this.deployNumDash = echarts.init(
-    //     document.getElementById("deployNumDash")
-    //   );
-    //   //echarts作图配置
-    //   this.deployNumDash.setOption({
-    //     //标题及字体颜色
-    //     title: {
-    //       text: "Deployments per Namespace",
-    //       //textStyle: 字体颜色
-    //       textStyle: { color: "rgb(134,135,136)" },
-    //     },
-    //     //图表颜色
-    //     color: [
-    //       "#67E0E3",
-    //       "#9FE6B8",
-    //       "#FFDB5C",
-    //       "#ff9f7f",
-    //       "#fb7293",
-    //       "#E062AE",
-    //       "#E690D1",
-    //       "#e7bcf3",
-    //       "#9d96f5",
-    //       "#8378EA",
-    //       "#96BFFF",
-    //     ],
-    //     //提示框
-    //     tooltip: {
-    //       //触发类型坐标轴触发，axis：代表坐标轴
-    //       trigger: "axis",
-    //       //'cross' 十字准星指示器
-    //       axisPointer: {
-    //         type: "cross",
-    //         label: {
-    //           backgroundColor: "#76baf1",
-    //         },
-    //       },
-    //     },
-    //     //图表中的最上面的数据类型解释
-    //     legend: {
-    //       data: ["Deployments"],
-    //     },
-    //     //图表数据集
-    //     dataset: {
-    //       //维度定义，默认第一个元素表示x轴的数据，其他都是y轴数据
-    //       dimensions: ["namespace", "deployNum"],
-    //       //源数据
-    //       source: this.deploymentNumNp,
-    //     },
-    //     //x轴属性
-    //     xAxis: {
-    //       //category类目轴，value数值轴，time时间轴，log对数轴
-    //       type: "category",
-    //       //轴标签
-    //       axisLabel: {
-    //         //坐标轴刻度标签的显示间隔，在类目轴中有效.0显示所有
-    //         interval: 0,
-    //         //格式化轴标签
-    //         formatter: function (value) {
-    //           return value.length > 5 ? value.substring(0, 5) + "..." : value;
-    //         },
-    //       },
-    //     },
-    //     //y轴属性
-    //     yAxis: [
-    //       //数值轴
-    //       { type: "value" },
-    //     ],
-    //     //定义系列，用于指定一组数值以及他们映射成的图
-    //     series: [
-    //       {
-    //         //name是legend对应的值
-    //         name: "Deployments",
-    //         //bar柱状图，line折线图，pie饼图等等
-    //         type: "bar",
-    //         //每个类目的值标签，配置
-    //         label: {
-    //           //是否显示值
-    //           show: true,
-    //           //显示的位置
-    //           position: "top",
-    //         },
-    //       },
-    //     ],
-    //   });
-    // },
     getPods() {
       httpClient
         .get(this.getPodData.url)
         .then((res) => {
-          this.podTotal = res.data.total;
+          console.log("获取到pod总数为：", res.data.total);
+          this.podTotalNum = res.data.total;
         })
         .catch((res) => {
           this.$message.error({
@@ -616,7 +492,6 @@ export default {
     this.getPods();
     this.getSvcs();
     this.getAllResourceNum();
-    // this.getdeploymentNumNp();
   },
 };
 </script>
