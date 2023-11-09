@@ -1,1 +1,170 @@
-<template>登陆页面</template>
+<template>
+  <div class="login">
+    <div class="div-title">
+      <!-- <el-icon><ChromeFilled /></el-icon> -->
+      <el-row>
+        <el-col
+          :span="1"
+          style="
+            padding-top: 5px;
+            padding-right: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+          "
+          ><el-icon style="color: #1256e7"><ChromeFilled /></el-icon
+        ></el-col>
+        <el-col :span="5"><span>集群管理平台</span></el-col>
+      </el-row>
+    </div>
+    <el-card class="login-card">
+      <template #header>
+        <div class="login-card-header">
+          <span>用户登录</span>
+        </div>
+      </template>
+      <el-from v-model="loginData" :rules="loginDataRules" ref="loginData">
+        <el-form-item>
+          <el-row :gutter="10">
+            <el-col :span="24">
+              <!-- prefix-icon="UserFilled"  在输入框前面加图标 -->
+              <el-input
+                prefix-icon="UserFilled"
+                placeholder="请输入账号"
+                v-model="loginData.username"
+                style="height: 40px"
+                prop="username"
+              ></el-input
+            ></el-col>
+            <el-col :span="24" style="height: 5px"></el-col>
+            <el-col :span="24"
+              ><el-input
+                prefix-icon="Lock"
+                placeholder="请输入密码"
+                v-model="loginData.password"
+                type="password"
+                style="height: 40px"
+                prop="password"
+              ></el-input
+            ></el-col>
+            <el-col :span="24">
+              <div class="loginBtn">
+                <el-button
+                  type="primary"
+                  style="width: 100%; height: 40px"
+                  @click="handleLogin"
+                  >登录</el-button
+                >
+              </div>
+            </el-col>
+          </el-row>
+        </el-form-item>
+      </el-from>
+    </el-card>
+  </div>
+</template>
+
+<script>
+import common from "../common/Config";
+import httpClient from "../../utils/request";
+import moment from "moment";
+import jwt from "jsonwebtoken";
+
+export default {
+  data() {
+    return {
+      // /加载等待动画
+      loginLoading: false,
+      //登录验证的后端接口
+      loginUrl: common.loginAuth,
+      loginData: {
+        username: "",
+        password: "",
+      },
+
+      loginDataRules: {
+        username: [
+          {
+            required: true,
+            message: "请填写用户名",
+            trigger: "change",
+          },
+        ],
+        password: [
+          {
+            required: true,
+            message: "请填写密码",
+            trigger: "change",
+          },
+        ],
+      },
+    };
+  },
+  methods: {
+    //登录方法
+    handleLogin() {
+      httpClient
+        .post(this.loginUrl, this.loginData)
+        .then((res) => {
+          //账号密码校验成功后的一系列操作
+          localStorage.setItem("username", this.loginData.username);
+          localStorage.setItem(
+            "loginDate",
+            moment().format("YYYY-MM-DDHH:mm:ss")
+          );
+          //生成token
+          let token = jwt.sign(this.loginData, "adoodevops", {
+            expiresIn: "10h",
+          });
+          localStorage.setItem("token", token);
+          //跳转至根路径
+          this.$router.push("/");
+          this.$message.success({
+            message: res.msg,
+          });
+        })
+        .catch((res) => {
+          this.$message.error({
+            message: res.msg,
+          });
+        });
+    },
+  },
+};
+</script>
+<style>
+.login {
+  position: absolute; /*将该元素的定位方式设置为绝对定位，使其相对于其最近的已定位父元素进行定位。*/
+  width: 100%;
+  height: 100%;
+  background: aquamarine;
+  background-image: url(../../assets/img/login.jpg);
+  background-size: 100%; /*将背景图片的尺寸设置为100%，使其填充整个元素的背景区域*/
+}
+.login-card {
+  position: absolute;
+  left: 55%;
+  top: 45%;
+  width: 400px;
+  height: 250px;
+  border-radius: 5px;
+  background: rgb(255, 255, 255);
+  overflow: hidden;
+}
+.login-card-header {
+  text-align: center;
+}
+.loginBtn {
+  width: 100%;
+  padding-top: 10px;
+  text-align: center;
+}
+.div-title {
+  padding-left: 50px;
+  padding-top: 35px;
+  font-size: 35px;
+  font-weight: bold;
+
+  color: black;
+}
+</style>

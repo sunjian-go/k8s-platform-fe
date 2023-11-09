@@ -86,6 +86,8 @@ export default {
   K8sGetWorkflowById: "http://127.0.0.1:8999/api/workflow/getbyid",
   K8sDeleteWorkflowById: "http://127.0.0.1:8999/api/workflow/delbyid/",
   K8sCreateWorkflow: "http://127.0.0.1:8999/api/workflow/createworkflow",
+  //login
+  loginAuth: "http://127.0.0.1:8999/login",
   //编辑器配置
   cmOptions: {
     mode: "text/yaml", //编辑器的内容格式

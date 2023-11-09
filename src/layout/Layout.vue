@@ -395,9 +395,11 @@ export default {
   font-weight: bold;
   padding: 10px;
 }
+
 .aside-menu-item {
-  padding-left: 20px !important; /*被标记为!important时，它的优先级会高于其他样式规则 */
+  padding-left: 20px !important; /* 被标记为!important时，它的优先级会高于其他样式规则 */
 }
+
 .aside-sub-menu {
   padding-left: 20px !important;
 }

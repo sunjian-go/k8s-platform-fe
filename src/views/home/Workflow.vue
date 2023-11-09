@@ -401,15 +401,11 @@
                     @blur="keysAndVal(createWorkflow.label_str, '标签')"
                   ></el-input>
                 </el-form-item>
-                <el-form-item
-                  label="资源配额"
-                  prop="resource"
-                  class="workflow-create-form"
-                >
+                <el-form-item label="资源配额" class="workflow-create-form">
                   <el-select
                     v-model="createWorkflow.resource"
                     style="width: 100%"
-                    placeholder="cpu/mem"
+                    placeholder="cpu(m)/mem(Mi)"
                     @blur="keysAndVal(createWorkflow.resource, '资源配额')"
                   >
                     <el-option
@@ -764,7 +760,7 @@ export default {
       drawer2: false,
       drawer3: false,
       direction: "rtl",
-      resources: ["0.5/1", "1/2", "2/4", "4/8"],
+      resources: ["250/512", "500/1024", "750/2048", "1000/4096"],
       fullscreenLoading: false,
       createWorkflow: {
         name: "",
@@ -1004,8 +1000,9 @@ export default {
         this.createWorkflow.health_path = "";
         this.createWorkflowData.params.health_path = "";
         this.createWorkflowData.params.hosts = {};
+        this.createWorkflowData.params.type = "";
       }
-      this.createWorkflowData.params.type = "";
+      this.keyAndValArr = [];
       this.stepsActive = 0;
     },
     handleClose(done) {
@@ -1033,7 +1030,6 @@ export default {
         confirmButtonText: "确定",
       });
     },
-    //测试打印
     nextDrawer1() {
       if (!this.createWorkflowData.params.type) {
         this.$alert("请先选择工作流类型", "消息提示", {
@@ -1051,7 +1047,6 @@ export default {
       }
     },
     nextDrawer2() {
-      // this.assembleResourceInfo();
       this.keysAndVal(this.createWorkflow.replicas, "副本数");
       console.log("需要展示的是：", this.keyAndValArr);
       if (this.createWorkflowData.params.type == "Ingress") {
@@ -1065,7 +1060,7 @@ export default {
         this.drawer2 = true;
       }
     },
-    //组装数据
+    //创建前的组装数据
     assembleResourceInfo() {
       this.createWorkflowData.params.name = this.createWorkflow.name;
       this.createWorkflowData.params.namespace = this.createWorkflow.namespace;
@@ -1073,10 +1068,12 @@ export default {
       this.createWorkflowData.params.replicas = parseInt(
         this.createWorkflow.replicas
       );
-      this.createWorkflowData.params.cpu =
-        this.createWorkflow.resource.split("/")[0];
-      this.createWorkflowData.params.memory =
-        this.createWorkflow.resource.split("/")[1] + "Gi";
+      if (this.createWorkflow.resource) {
+        this.createWorkflowData.params.cpu =
+          this.createWorkflow.resource.split("/")[0] + "m";
+        this.createWorkflowData.params.memory =
+          this.createWorkflow.resource.split("/")[1] + "Mi";
+      }
       if (this.createWorkflow.port) {
         this.createWorkflowData.params.port = parseInt(
           this.createWorkflow.port
@@ -1108,15 +1105,9 @@ export default {
       let a = this.createWorkflow.label_str.split(",");
       //遍历a数组中的每个元素
       a.forEach((item) => {
-        // item就是每个元素，将每个元素通过"="进行分割，得到一个子字符串数组b，例如，如果当前元素是"name=test"，则b将是["name", "test"]。
         let b = item.split("=");
-        // 将分割后的子字符串数组中的第一个元素作为键，第二个元素作为值，存储在上面创建的label对象(map)中。
         label[b[0]] = b[1];
-        // label.set(b[0], b[1]);
       });
-      // this.createWorkflowData.params.label = JSON.stringify(
-      //   Object.fromEntries(label)
-      // );
       this.createWorkflowData.params.label = label;
       for (let i in this.hostsArr) {
         if (this.hostsArr[i].service_port) {
@@ -1129,10 +1120,17 @@ export default {
       this.createWorkflowData.params.hosts[this.createWorkflow.host] =
         this.hostsArr;
       console.log("目前是：", this.hostsArr);
+      console.log("组装数据中：健康检查为", this.createWorkflow.health_check);
       this.createWorkflowData.params.health_check =
         this.createWorkflow.health_check;
-      this.createWorkflowData.params.health_path =
-        this.createWorkflow.health_path;
+      if (this.createWorkflow.health_check) {
+        console.log("判断里面：", this.createWorkflowData.params.health_check);
+        this.createWorkflowData.params.health_path =
+          this.createWorkflow.health_path;
+      } else {
+        console.log("判断里面：", this.createWorkflowData.params.health_check);
+        this.createWorkflowData.params.health_path = "";
+      }
       console.log("组装好了：", this.createWorkflowData.params);
     },
     //获取namespace列表
@@ -1190,7 +1188,11 @@ export default {
       this.fullscreenLoading = true;
       //去组装数据
       this.assembleResourceInfo();
-      console.log("准备创建的数据为：", this.createWorkflowData.params);
+      console.log(
+        "createWorkflowFunc准备创建的数据为：",
+        this.createWorkflowData.params
+      );
+      console.log("此时workflow为", this.createWorkflow);
       //组装好数据后开始创建
       httpClient
         .post(this.createWorkflowData.url, this.createWorkflowData.params)
@@ -1207,11 +1209,11 @@ export default {
           });
         })
         .finally(() => {
-          //重置表单，无论创建成功与否，都会重置表单
-          this.resetDatas();
           //关闭动画加载和抽屉
           this.fullscreenLoading = false;
           this.drawer3 = false;
+          //重置表单，无论创建成功与否，都会重置表单
+          this.resetDatas();
         });
     },
     //重置表单
@@ -1277,7 +1279,6 @@ export default {
               this.drawer3 = true;
               this.stepsActive = 2;
             }
-            this.assembleResourceInfo();
           }
         } else {
           console.log("规则不通过：", formName);
