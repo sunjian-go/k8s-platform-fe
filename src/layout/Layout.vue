@@ -220,6 +220,7 @@
 import { useRouter } from "vue-router";
 import common from "../views/common/Config";
 import httpClient from "../utils/request";
+import Cookies from "js-cookie";
 export default {
   data() {
     return {
@@ -290,12 +291,29 @@ export default {
       }
     },
     logout() {
-      //移除用户名
-      localStorage.removeItem("username");
-      //移除token
-      localStorage.removeItem("token");
-      //跳转至/login页面
-      this.$router.push("/login");
+      this.$confirm("是否退出？", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          //移除用户名
+          localStorage.removeItem("username");
+          //移除token
+          Cookies.remove("token");
+          this.$message({
+            type: "success",
+            message: "已退出!",
+          });
+          //跳转至/login页面
+          this.$router.push("/login");
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "取消退出",
+          });
+        });
     },
     //更新背景色
     updateColor() {

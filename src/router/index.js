@@ -5,7 +5,6 @@ import NProgress from "nprogress";
 import "nprogress/nprogress.css";
 //直接导入布局页面
 import Layout from "@/layout/Layout.vue";
-import axios from "axios";
 
 //路由规则
 const routes = [
@@ -184,7 +183,7 @@ const routes = [
 
   {
     path: "/:pathMatch(.*)", //vue2的话直接'.*'即可，匹配到任何不存在的路由都会跳转到404页面
-    redirect: "/404",
+    redirect: "/login",
   },
   {
     path: "/login", //视图
@@ -227,7 +226,6 @@ router.beforeEach((to, from, next) => {
   } else {
     document.title = "Kubernetes";
   }
-  //放行
   next();
 });
 

@@ -68,7 +68,7 @@
 import common from "../common/Config";
 import httpClient from "../../utils/request";
 import moment from "moment";
-import jwt from "jsonwebtoken";
+import Cookies from "js-cookie";
 
 export default {
   data() {
@@ -81,7 +81,6 @@ export default {
         username: "",
         password: "",
       },
-
       loginDataRules: {
         username: [
           {
@@ -98,34 +97,37 @@ export default {
           },
         ],
       },
+      token: "",
     };
   },
   methods: {
     //登录方法
     handleLogin() {
+      console.log("准备登录：", this.loginData);
       httpClient
         .post(this.loginUrl, this.loginData)
         .then((res) => {
+          console.log("登陆成功了");
           //账号密码校验成功后的一系列操作
           localStorage.setItem("username", this.loginData.username);
           localStorage.setItem(
             "loginDate",
             moment().format("YYYY-MM-DDHH:mm:ss")
           );
-          //生成token
-          let token = jwt.sign(this.loginData, "adoodevops", {
-            expiresIn: "10h",
-          });
-          localStorage.setItem("token", token);
+          //从后端拿到token
+          this.token = res.token;
+          console.log("拿到的token为：", this.token);
+          // 存储 token
+          Cookies.set("token", this.token);
           //跳转至根路径
-          this.$router.push("/");
+          this.$router.push("/home");
           this.$message.success({
             message: res.msg,
           });
         })
         .catch((res) => {
           this.$message.error({
-            message: res.msg,
+            message: res.err,
           });
         });
     },
