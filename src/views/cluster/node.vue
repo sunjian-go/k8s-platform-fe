@@ -114,7 +114,7 @@
 </template>
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
+import { getNodes } from "@/api/cluster/cluster";
 export default {
   data() {
     return {
@@ -137,8 +137,7 @@ export default {
   methods: {
     //获取node列表
     getNodeList() {
-      httpClient
-        .get(this.getNodeListData.url)
+      getNodes()
         .then((res) => {
           console.log("获取到node信息：", res.data);
           this.nodeList = res.data.items;
@@ -185,6 +184,7 @@ export default {
       const url = `/nodedetail?name=${encodeURIComponent(
         nodeinfo.metadata.name
       )}`;
+      console.log("准备获取节点信息：", nodeinfo.metadata.name);
       window.open(url, "_blank");
     },
   },

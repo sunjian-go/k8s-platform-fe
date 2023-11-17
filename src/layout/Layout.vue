@@ -219,8 +219,9 @@
 <script>
 import { useRouter } from "vue-router";
 import common from "../views/common/Config";
-import httpClient from "../utils/request";
 import Cookies from "js-cookie";
+import { getColorReq, updateColorReq } from "@/api/style/style";
+
 export default {
   data() {
     return {
@@ -317,11 +318,9 @@ export default {
     },
     //更新背景色
     updateColor() {
-      //console.log("选择颜色：", this.backgroundColor);
       this.updateColorData.body.background = this.backgroundColor;
       this.updateColorData.body.color = this.fontColor;
-      httpClient
-        .put(this.updateColorData.url, this.updateColorData.body)
+      updateColorReq(this.updateColorData.body)
         .then((res) => {
           this.$message.success({
             message: res.msg,
@@ -337,8 +336,7 @@ export default {
     },
     //从后端获取颜色
     getColorForServer() {
-      httpClient
-        .get(this.getColorData.url)
+      getColorReq()
         .then((res) => {
           console.log("获取到颜色为：", res.data);
           //成功获取到的话就更新颜色为最新，反之不变

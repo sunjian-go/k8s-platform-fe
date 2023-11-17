@@ -198,7 +198,8 @@
 </template>
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
+import { getNamespacesReq, deleteNamespaceReq } from "@/api/cluster/cluster";
+
 export default {
   data() {
     return {
@@ -254,10 +255,7 @@ export default {
       this.getNamespaceData.params.page = this.currentPage;
       this.getNamespaceData.params.limit = this.pagesize;
       //   this.apploading = true;
-      httpClient
-        .get(this.getNamespaceData.url, {
-          params: this.getNamespaceData.params,
-        })
+      getNamespacesReq(this.getNamespaceData.params)
         .then((res) => {
           this.namespaceList = res.data.namespaces;
           this.namespacetotal = res.data.total;
@@ -299,10 +297,7 @@ export default {
     deleteNamespace(namespace) {
       console.log("要删除的namespoace是：", namespace);
       this.deleteNamespaceData.params.name = namespace;
-      httpClient
-        .delete(this.deleteNamespaceData.url, {
-          params: this.deleteNamespaceData.params,
-        })
+      deleteNamespaceReq(this.deleteNamespaceData.params)
         .then((res) => {
           this.$message({
             type: "success",

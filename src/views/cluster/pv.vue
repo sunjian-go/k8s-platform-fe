@@ -189,7 +189,7 @@
 </template>
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
+import { getPvsReq, deletePvsReq } from "@/api/cluster/cluster";
 export default {
   data() {
     return {
@@ -244,10 +244,7 @@ export default {
       this.getPvData.params.page = this.currentPage;
       this.getPvData.params.limit = this.pagesize;
       //   this.apploading = true;
-      httpClient
-        .get(this.getPvData.url, {
-          params: this.getPvData.params,
-        })
+      getPvsReq(this.getPvData.params)
         .then((res) => {
           this.pvList = res.data.pvs;
           this.pvtotal = res.data.total;
@@ -289,10 +286,7 @@ export default {
     deletePv(pv) {
       console.log("要删除的namespoace是：", pv);
       this.deletePvData.params.name = pv;
-      httpClient
-        .delete(this.deletePvData.url, {
-          params: this.deletePvData.params,
-        })
+      deletePvsReq(this.deletePvData.params)
         .then((res) => {
           this.$message({
             type: "success",

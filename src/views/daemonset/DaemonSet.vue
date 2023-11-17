@@ -216,19 +216,6 @@
                       >YAML</el-button
                     >
                     <el-button
-                      disabled="restartBool"
-                      type="primary"
-                      icon="RefreshLeft"
-                      @click="
-                        handleConfirm(
-                          scope.row.metadata.name,
-                          '重启',
-                          restartDaemonSet
-                        )
-                      "
-                      >重启</el-button
-                    >
-                    <el-button
                       type="danger"
                       icon="Delete"
                       @click="
@@ -437,12 +424,16 @@
 
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
-// 必须导入
-//import JsonEditorVue from "json-editor-vue3";
-//import { codemirror } from "codemirror-editor-vue3";
+import {
+  getDaemonSetsReq,
+  updateDaemonSetsReq,
+  getDaemonSetsDetailReq,
+  deleteDaemonSetReq,
+} from "@/api/daemonset/daemonset";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+
 export default {
   //components: { codemirror },
   data() {
@@ -601,8 +592,7 @@ export default {
     },
     //获取namespace列表
     getNamespaces() {
-      httpClient
-        .get(this.namespaceListUrl)
+      getNamespacesReq()
         .then((res) => {
           this.namespaceList = res.data.namespaces; //res.data.namespaces 是根据后端返回时的数据名写
           // console.log("获取数据为：", res.data.namespaces);
@@ -626,10 +616,7 @@ export default {
 
       // 根据过滤条件去发送get请求，重新获取dployemnt列表，为空则返回所有资源
       // params：设置请求参数，会将这些参数附加到URL的查询字符串中，例如：http://127.0.0.1:8999/api/appsv1/getdaemonsets?filter_name=&namespace=huiju&page=1&limit=10
-      httpClient
-        .get(this.getDaemonSetData.url, {
-          params: this.getDaemonSetData.params,
-        })
+      getDaemonSetsReq(this.getDaemonSetData.params)
         .then((res) => {
           this.daemonsetList = res.data.items;
           this.daemonsetTotal = res.data.total;
@@ -646,72 +633,6 @@ export default {
           console.log("报错为：", res);
           //this.appLoading = false;
         });
-    },
-    //创建daemonset对象
-    createDeployFunc() {
-      //正则匹配，验证label
-      // "(^[A-Za-z]+=[A-Za-z0-9]+).*": 表示匹配以字母开头，后跟一个或多个字母或数字的键值对形式的字符串。其中^表示匹配字符串的开始，
-      // [A-Za-z]表示匹配任意一个英文字母，+表示匹配前面的模式一次或多次，[A-Za-z0-9]表示匹配任意一个英文字母或数字，.*表示匹配任意字符零次或多次。
-      let reg = new RegExp("(^[A-Za-z]+=[A-Za-z0-9]+).*");
-      //如果不匹配
-      if (!reg.test(this.createDaemonSet.label_str)) {
-        this.$message.warning({
-          message: "标签填写异常，请确认后重新填写",
-        });
-        return;
-      }
-      // 开启加载loading动画
-      this.fullscreenLoading = true;
-      let label = new Map();
-      let cpu, memory;
-      // 将label_str字符串通过","进行分割，返回一个数组存储在a中：例如目前该字符串为："name=test,app=web",那么a就等于["name=test","app=web"]
-      let a = this.createDaemonSet.label_str.split(",");
-      //遍历a数组中的每个元素
-      a.forEach((item) => {
-        // item就是每个元素，将每个元素通过"="进行分割，得到一个子字符串数组b，例如，如果当前元素是"name=test"，则b将是["name", "test"]。
-        let b = item.split("=");
-        // 将分割后的子字符串数组中的第一个元素作为键，第二个元素作为值，存储在上面创建的label对象(map)中。
-        label[b[0]] = b[1];
-      });
-      let resourceList = this.createDaemonSet.resource.split("/");
-      cpu = resourceList[0];
-      memory = resourceList[1] + "Gi";
-      // 先组装好类型一样的数据
-      this.createDaemonSetData.params.name = this.createDaemonSet.name;
-      this.createDaemonSetData.params.namespace =
-        this.createDaemonSet.namespace;
-      this.createDaemonSetData.params.img = this.createDaemonSet.image;
-      this.createDaemonSetData.params.replicas = this.createDaemonSet.replicas;
-      //然后开始把个别特殊的数据重新组装一遍
-      // parseInt：将字符串转为整数
-      this.createDaemonSetData.params.containerPort = parseInt(
-        this.createDaemonSet.container_port
-      );
-      //把上面调好的数据进行组装
-      this.createDaemonSetData.params.label = label;
-      this.createDaemonSetData.params.cpu = cpu;
-      this.createDaemonSetData.params.mem = memory;
-      console.log("发送前：", this.createDaemonSetData.params);
-      //组装好数据后开始创建
-      httpClient
-        .post(this.createDaemonSetData.url, this.createDaemonSetData.params)
-        .then((res) => {
-          this.$message.success({
-            message: res.msg,
-          });
-          // 创建之后重新获取下该namespace的daemonset列表
-          this.getDaemonSets();
-        })
-        .catch((res) => {
-          this.$message.error({
-            message: res.err,
-          });
-        });
-      //重置表单，无论创建成功与否，都会重置表单
-      this.resetForm("createDaemonSet");
-      //关闭动画加载和抽屉
-      this.fullscreenLoading = false;
-      this.drawer = false;
     },
     //重置表单
     resetForm(formName) {
@@ -759,37 +680,12 @@ export default {
       console.log("当前页: ", this.currentPage);
       this.getDaemonSets();
     },
-    //重启daemonset
-    restartDaemonSet(obj) {
-      console.log("将重启：", obj, "namespace为：", this.namespaceValue);
-      this.restartDaemonSetData.params.name = obj;
-      this.restartDaemonSetData.params.namespace = this.namespaceValue;
-      httpClient
-        .put(this.restartDaemonSetData.url, this.restartDaemonSetData.params)
-        .then((res) => {
-          this.$message({
-            type: "success",
-            message: name + "重启成功",
-          });
-          // 重启之后重新获取下该namespace的daemonset列表
-          this.getDaemonSets();
-        })
-        .catch((res) => {
-          this.$message({
-            type: "info",
-            message: name + "重启失败",
-          });
-        });
-    },
     //删除daemonset
     deleteDaemonSet(obj) {
       console.log("将删除：", obj, "namespace为：", this.namespaceValue);
       this.deleteDaemonSetData.params.name = obj;
       this.deleteDaemonSetData.params.namespace = this.namespaceValue;
-      httpClient
-        .delete(this.deleteDaemonSetData.url, {
-          params: this.deleteDaemonSetData.params,
-        })
+      deleteDaemonSetReq(this.deleteDaemonSetData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -805,7 +701,6 @@ export default {
           });
         });
     },
-
     //操作类提示框：重启、删除..
     handleConfirm(name, play, playFunc) {
       this.$confirm(
@@ -845,10 +740,7 @@ export default {
         this.daemonsetDetailData.params.namespace = this.namespaceValue;
       }
       this.daemonsetDetailData.params.namespace = obj.metadata.namespace;
-      httpClient
-        .get(this.daemonsetDetailData.url, {
-          params: this.daemonsetDetailData.params,
-        })
+      getDaemonSetsDetailReq(this.daemonsetDetailData.params)
         .then((res) => {
           console.log("daemonset详情为：", res.data);
           this.contentYaml = this.jsontoyaml(res.data);
@@ -865,8 +757,7 @@ export default {
       this.updateDaemonSetData.params.content = JSON.stringify(
         yaml2obj.load(this.contentYaml)
       );
-      httpClient
-        .put(this.updateDaemonSetData.url, this.updateDaemonSetData.params)
+      updateDaemonSetsReq(this.updateDaemonSetData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -932,8 +823,11 @@ export default {
     }
     //然后去获取namespace列表
     this.getNamespaces();
+
     //获取daemonset列表
-    this.getDaemonSets();
+    if (this.namespaceValue == "") {
+      this.getDaemonSets();
+    }
   },
 };
 </script>

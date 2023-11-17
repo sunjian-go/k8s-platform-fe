@@ -23,7 +23,7 @@
           <span>用户登录</span>
         </div>
       </template>
-      <el-from v-model="loginData" :rules="loginDataRules" ref="loginData">
+      <el-form v-model="loginData" :rules="loginDataRules" ref="loginData">
         <el-form-item>
           <el-row :gutter="10">
             <el-col :span="24">
@@ -59,17 +59,16 @@
             </el-col>
           </el-row>
         </el-form-item>
-      </el-from>
+      </el-form>
     </el-card>
   </div>
 </template>
 
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
 import moment from "moment";
 import Cookies from "js-cookie";
-
+import { login } from "@/api/user/user";
 export default {
   data() {
     return {
@@ -98,14 +97,14 @@ export default {
         ],
       },
       token: "",
+      wshost: "",
     };
   },
   methods: {
     //登录方法
     handleLogin() {
       console.log("准备登录：", this.loginData);
-      httpClient
-        .post(this.loginUrl, this.loginData)
+      login(this.loginData)
         .then((res) => {
           console.log("登陆成功了");
           //账号密码校验成功后的一系列操作
@@ -114,11 +113,14 @@ export default {
             "loginDate",
             moment().format("YYYY-MM-DDHH:mm:ss")
           );
-          //从后端拿到token
+          //从后端拿到token和websocket的地址
           this.token = res.token;
+          this.wshost = res.wshost;
           console.log("拿到的token为：", this.token);
-          // 存储 token
+          console.log("拿到的ip为：", this.wshost);
+          // 存储 token和websocket的地址
           Cookies.set("token", this.token);
+          Cookies.set("wshost", this.wshost);
           //跳转至根路径
           this.$router.push("/home");
           this.$message.success({

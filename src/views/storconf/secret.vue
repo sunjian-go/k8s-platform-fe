@@ -416,9 +416,16 @@
 </template>
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
+import {
+  getSecretsReq,
+  getSecretsDetailReq,
+  updateSecretReq,
+  deleteSecretReq,
+} from "@/api/secret/secret";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+
 export default {
   data() {
     return {
@@ -563,8 +570,7 @@ export default {
       this.updateSecretData.params.content = JSON.stringify(
         yaml2obj.load(this.contentYaml)
       );
-      httpClient
-        .put(this.updateSecretData.url, this.updateSecretData.params)
+      updateSecretReq(this.updateSecretData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -592,10 +598,8 @@ export default {
       }
       this.secretDetailData.params.namespace = obj.metadata.namespace;
       console.log("准备获取详情的是：", this.secretDetailData.params);
-      httpClient
-        .get(this.secretDetailData.url, {
-          params: this.secretDetailData.params,
-        })
+
+      getSecretsDetailReq(this.secretDetailData.params)
         .then((res) => {
           console.log("secret详情为：", res.data);
           this.contentYaml = this.jsontoyaml(res.data);
@@ -619,66 +623,6 @@ export default {
     jsontoyaml(jsondata) {
       return json2yaml.stringify(jsondata);
     },
-    //创建secret对象
-    createSecretFunc() {
-      //正则匹配，验证label
-      // "(^[A-Za-z]+=[A-Za-z0-9]+).*": 表示匹配以字母开头，后跟一个或多个字母或数字的键值对形式的字符串。其中^表示匹配字符串的开始，
-      // [A-Za-z]表示匹配任意一个英文字母，+表示匹配前面的模式一次或多次，[A-Za-z0-9]表示匹配任意一个英文字母或数字，.*表示匹配任意字符零次或多次。
-      let reg = new RegExp("(^[A-Za-z]+=[A-Za-z0-9]+).*");
-      //如果不匹配
-      if (!reg.test(this.createSecret.label_str)) {
-        this.$message.warning({
-          message: "标签填写异常，请确认后重新填写",
-        });
-        return;
-      }
-      // 开启加载loading动画
-      this.fullscreenLoading = true;
-      let label = new Map();
-      // 将label_str字符串通过","进行分割，返回一个数组存储在a中：例如目前该字符串为："name=test,app=web",那么a就等于["name=test","app=web"]
-      let a = this.createSecret.label_str.split(",");
-      //遍历a数组中的每个元素
-      a.forEach((lab) => {
-        // item就是每个元素，将每个元素通过"="进行分割，得到一个子字符串数组b，例如，如果当前元素是"name=test"，则b将是["name", "test"]。
-        let b = lab.split("=");
-        // 将分割后的子字符串数组中的第一个元素作为键，第二个元素作为值，存储在上面创建的label对象(map)中。
-        label[b[0]] = b[1];
-      });
-
-      // 组装好类型一样的数据
-      this.createSecretData.params.name = this.createSecret.name;
-      this.createSecretData.params.namespace = this.createSecret.namespace;
-      this.createSecretData.params.type = this.createSecret.type;
-      this.createSecretData.params.container_port = parseInt(
-        this.createSecret.container_port
-      );
-      this.createSecretData.params.port = parseInt(this.createSecret.port);
-      this.createSecretData.params.node_port = parseInt(
-        this.createSecret.node_port
-      );
-      this.createSecretData.params.label = label;
-      console.log("组装数据：", this.createSecretData.params);
-
-      // 组装好数据后开始创建
-      httpClient
-        .post(this.createSecretData.url, this.createSecretData.params)
-        .then((res) => {
-          this.$message.success({
-            message: res.msg,
-          });
-          this.getSecrets();
-        })
-        .catch((res) => {
-          this.$message.error({
-            message: res.err,
-          });
-        });
-      //重置表单，无论创建成功与否，都会重置表单
-      this.resetForm("createSecret");
-      this.fullscreenLoading = false;
-      //关闭动画加载和抽屉
-      this.drawer = false;
-    },
     //重置表单
     resetForm(formName) {
       //this.$refs可以获取到该表单对象所有组件的值
@@ -700,8 +644,7 @@ export default {
     },
     //获取namespace列表
     getNamespaces() {
-      httpClient
-        .get(this.namespaceListUrl)
+      getNamespacesReq()
         .then((res) => {
           this.namespaceList = res.data.namespaces; //res.data.namespaces 是根据后端返回时的数据名写
           // console.log("获取数据为：", res.data.namespaces);
@@ -733,10 +676,7 @@ export default {
       this.getSecretData.params.page = this.currentPage;
       this.getSecretData.params.limit = this.pagesize;
       //   this.apploading = true;
-      httpClient
-        .get(this.getSecretData.url, {
-          params: this.getSecretData.params,
-        })
+      getSecretsReq(this.getSecretData.params)
         .then((res) => {
           this.secretList = res.data.Items;
           this.secrettotal = res.data.Total;
@@ -769,12 +709,6 @@ export default {
     openbox() {
       this.drawer = true;
     },
-    //创建secret
-    createSecret() {
-      //this.fullscreenLoading = true;
-      alert("等待后续开发");
-      this.scalestatus = false;
-    },
     //处理抽屉的关闭，double check 增加体验
     handleClose(done) {
       this.$confirm("还有未保存的工作哦确定关闭吗？")
@@ -790,10 +724,7 @@ export default {
       this.deleteSecretData.params.namespace = this.namespaceValue;
       console.log("要删除的是：", this.deleteSecretData.params);
       //return;
-      httpClient
-        .delete(this.deleteSecretData.url, {
-          params: this.deleteSecretData.params,
-        })
+      deleteSecretReq(this.deleteSecretData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -835,10 +766,6 @@ export default {
         });
     },
   },
-  beforeMount() {
-    this.getNamespaces();
-    this.getSecrets();
-  },
   // beforeMount钩子函数里面的东西在页面实例挂载之前就调用了，用于页面数据的初始化
   beforeMount() {
     //加载页面时先获取localStorage中的namespace值，若获取不到则默认default，放在下拉框第一位显示
@@ -851,7 +778,9 @@ export default {
     //然后去获取namespace列表
     this.getNamespaces();
     //获取secret列表
-    this.getSecrets();
+    if (this.namespaceValue == "") {
+      this.getSecrets();
+    }
   },
   //watch是一个选项对象，用于监听数据的变化。
   watch: {

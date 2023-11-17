@@ -9,6 +9,16 @@ import Layout from "@/layout/Layout.vue";
 //路由规则
 const routes = [
   {
+    path: "/",
+    redirect: "/login", // 设置默认重定向到login页面
+  },
+  {
+    path: "/login", //视图
+    icon: "el-icon-unlock", //图标
+    meta: { title: "login", requireAuth: true }, //定义meta元数据
+    component: () => import("@/views/login/login.vue"), //视图组件
+  },
+  {
     path: "/home",
     component: Layout,
     icon: "odometer",
@@ -183,13 +193,7 @@ const routes = [
 
   {
     path: "/:pathMatch(.*)", //vue2的话直接'.*'即可，匹配到任何不存在的路由都会跳转到404页面
-    redirect: "/login",
-  },
-  {
-    path: "/login", //视图
-    icon: "el-icon-unlock", //图标
-    meta: { title: "login", requireAuth: true }, //定义meta元数据
-    component: () => import("@/views/login/login.vue"), //视图组件
+    redirect: "/404",
   },
   {
     path: "/test", //视图

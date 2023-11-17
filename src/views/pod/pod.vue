@@ -163,6 +163,20 @@
                                 />
                               </el-select>
                             </el-col>
+                            <el-col :span="2">
+                              <el-select
+                                v-model="bashType"
+                                placeholder="请选择"
+                              >
+                                <el-option
+                                  v-for="(v, k) in bashTypes"
+                                  :key="k"
+                                  :label="v"
+                                  :value="v"
+                                  :disabled="false"
+                                />
+                              </el-select>
+                            </el-col>
                             <el-col :span="4">
                               <el-button
                                 type="primary"
@@ -260,13 +274,7 @@
                         <el-button
                           type="danger"
                           icon="Delete"
-                          @click="
-                            handleConfirm(
-                              scope.row.metadata.name,
-                              '删除',
-                              deletePod
-                            )
-                          "
+                          @click="deleteBefor(scope.row)"
                           >删除</el-button
                         >
                       </el-col>
@@ -345,7 +353,6 @@
 </template>
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
 //引入Xtem终端依赖
@@ -354,6 +361,16 @@ import { FitAddon } from "xterm-addon-fit";
 // 引入css和js是为了该组件的外观展示
 import "xterm/css/xterm.css";
 import "xterm/lib/xterm.js";
+import {
+  getPodsReq,
+  updatePodsReq,
+  getPodsDetailReq,
+  deletePodReq,
+  getContainersReq,
+  getLogReq,
+} from "@/api/pod/pod";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+
 export default {
   data() {
     return {
@@ -431,6 +448,8 @@ export default {
       containerName: "",
       containerValue: "",
       containerLog: "",
+      bashType: "bash",
+      bashTypes: ["bash", "sh"],
       getContainerLogData: {
         url: common.K8sGetContainerLog,
         params: {
@@ -546,6 +565,7 @@ export default {
         row.metadata.name +
         "&namespace=" +
         this.namespaceValue;
+      console.log("WebSocket连接为：", getlogWsUrl);
       //实例化
       this.logSocket = new WebSocket(getlogWsUrl);
 
@@ -609,8 +629,11 @@ export default {
         "&container_name=" +
         this.containerName +
         "&namespace=" +
-        this.namespaceValue;
-
+        this.namespaceValue +
+        "&bashType=" +
+        "/bin/" +
+        this.bashType;
+      console.log("WebSocket连接为：", terminalWsUrl);
       //实例化
       this.socket = new WebSocket(terminalWsUrl);
 
@@ -692,8 +715,7 @@ export default {
     },
     //获取namespace
     getPodNamespace() {
-      httpClient
-        .get(this.getNamespaceData.url)
+      getNamespacesReq()
         .then((res) => {
           this.namespaceList = res.data.namespaces;
           //console.log("获取到：", this.namespaceList);
@@ -708,10 +730,7 @@ export default {
       this.getPodListData.params.namespace = this.namespaceValue;
       this.getPodListData.params.page = this.currentPage;
       this.getPodListData.params.limit = this.pagesize;
-      httpClient
-        .get(this.getPodListData.url, {
-          params: this.getPodListData.params,
-        })
+      getPodsReq(this.getPodListData.params)
         .then((res) => {
           console.log("获取pod列表为: ", res.data);
           this.podList = res.data.items;
@@ -774,9 +793,7 @@ export default {
       this.updatePodData.params.context = JSON.stringify(
         yaml2obj.load(this.contentYaml)
       );
-
-      httpClient
-        .put(this.updatePodData.url, this.updatePodData.params)
+      updatePodsReq(this.updatePodData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -799,11 +816,11 @@ export default {
       this.getPodDetailData.params.name = obj.metadata.name;
       if (this.namespaceValue != "") {
         this.getPodDetailData.params.namespace = this.namespaceValue;
+      } else {
+        this.getPodDetailData.params.namespace = obj.metadata.namespace;
       }
-      this.getPodDetailData.params.namespace = obj.metadata.namespace;
       console.log("传进来的的为：", this.getPodDetailData.params);
-      httpClient
-        .get(this.getPodDetailData.url, this.getPodDetailData)
+      getPodsDetailReq(this.getPodDetailData.params)
         .then((res) => {
           //console.log("pod详情为：", res.data);
           this.contentYaml = this.jsontoyaml(res.data);
@@ -813,12 +830,32 @@ export default {
           console.log("报错为：", res.err);
         });
     },
+    //删除前的判断
+    deleteBefor(row) {
+      let flag = 0;
+      for (let k in row.metadata.labels) {
+        if (row.metadata.labels[k] == "workflow") {
+          flag = 1;
+        }
+      }
+      if (flag == 1) {
+        this.$alert(
+          "这是由工作流创建的资源，请在工作流页面进行删除操作",
+          "提示！",
+          {
+            confirmButtonText: "确定",
+          }
+        );
+      } else {
+        //删除
+        this.handleConfirm(row.metadata.name, "删除", this.deletePod);
+      }
+    },
     //删除pod
     deletePod(podName) {
       (this.deletePodData.params.name = podName),
         (this.deletePodData.params.namespace = this.namespaceValue),
-        httpClient
-          .delete(this.deletePodData.url, { params: this.deletePodData.params })
+        deletePodReq(this.deletePodData.params)
           .then((res) => {
             this.$message({
               type: "success",
@@ -888,10 +925,7 @@ export default {
       this.getContainersData.params.name = podName;
       this.getContainersData.params.namespace = this.namespaceValue;
       console.log("1.准备获取容器列表为：", this.getContainersData.params);
-      httpClient
-        .get(this.getContainersData.url, {
-          params: this.getContainersData.params,
-        })
+      getContainersReq(this.getContainersData.params)
         .then((res) => {
           this.containerList = res.data;
           this.containerName = this.containerList[0];
@@ -926,10 +960,7 @@ export default {
       this.getContainerLogData.params.container = this.containerName;
       this.getContainerLogData.params.podname = podName;
       this.getContainerLogData.params.namespace = this.namespaceValue;
-      httpClient
-        .get(this.getContainerLogData.url, {
-          params: this.getContainerLogData.params,
-        })
+      getLogReq(this.getContainerLogData.params)
         .then((res) => {
           console.log("获取到日志为：", res.data);
           this.containerLog = res.data;
@@ -965,7 +996,11 @@ export default {
       this.namespaceValue = localStorage.getItem("namespace");
     }
     this.getPodNamespace();
-    this.getPodList();
+
+    //获取pod列表
+    if (this.namespaceValue == "") {
+      this.getPodList();
+    }
   },
   beforeUnmount() {
     if (this.socket != null) {

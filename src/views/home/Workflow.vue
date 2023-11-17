@@ -225,7 +225,7 @@
       <el-drawer v-model="drawer1" :before-close="handleClose">
         <!-- <el-drawer v-model="drawer1"> -->
         <!-- 插槽：抽屉标题  -->
-        <template #title>
+        <template #header>
           <el-row :gutter="10">
             <el-col :span="24">
               <div>
@@ -580,7 +580,7 @@
       <!-- 抽屉3 -->
       <el-drawer v-model="drawer3" :before-close="handleClose">
         <!-- 插槽：抽屉标题  -->
-        <template #title>
+        <template #header>
           <span style="font-weight: bold; font-size: 18px">创建资源</span>
         </template>
         <template #default>
@@ -742,16 +742,19 @@
 
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
-import yaml2obj from "js-yaml";
-import json2yaml from "json2yaml";
+import {
+  getWorkflowsReq,
+  createWorkflowReq,
+  deleteWorkflowReq,
+} from "@/api/workflow/workflow";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+
 export default {
   data() {
     return {
       //步骤条索引
       stepsActive: 0,
       //工作流类型
-
       namespaceValue: "",
       namespaceList: [],
       namespaceListUrl: common.k8sNamespaceList,
@@ -979,29 +982,29 @@ export default {
       }
     },
     resetDatas() {
-      if (this.createWorkflow.name != "") {
-        this.resetForm("createWorkflow");
-        if (this.createWorkflowData.params.type == "Ingress") {
-          this.resetForm("createIngressHost");
-          this.testarr = [1];
-          this.hostsArr = [
-            {
-              path: "",
-              path_type: "",
-              service_name: "",
-              service_port: 0,
-            },
-          ];
-        }
-        this.createWorkflow.node_port = "";
-        this.createWorkflowData.params.node_port = 0;
-        this.createWorkflow.health_check = false;
-        this.createWorkflowData.params.health_check = false;
-        this.createWorkflow.health_path = "";
-        this.createWorkflowData.params.health_path = "";
-        this.createWorkflowData.params.hosts = {};
-        this.createWorkflowData.params.type = "";
+      // if (this.createWorkflow.name != "") {
+      this.resetForm("createWorkflow");
+      if (this.createWorkflowData.params.type == "Ingress") {
+        this.resetForm("createIngressHost");
+        this.testarr = [1];
+        this.hostsArr = [
+          {
+            path: "",
+            path_type: "",
+            service_name: "",
+            service_port: 0,
+          },
+        ];
       }
+      this.createWorkflow.node_port = "";
+      this.createWorkflowData.params.node_port = 0;
+      this.createWorkflow.health_check = false;
+      this.createWorkflowData.params.health_check = false;
+      this.createWorkflow.health_path = "";
+      this.createWorkflowData.params.health_path = "";
+      this.createWorkflowData.params.hosts = {};
+      this.createWorkflowData.params.type = "";
+      // }
       this.keyAndValArr = [];
       this.stepsActive = 0;
     },
@@ -1100,6 +1103,8 @@ export default {
         });
         return;
       }
+
+      this.createWorkflow.label_str += ",cra=workflow";
       let label = new Map();
       // 将label_str字符串通过","进行分割，返回一个数组存储在a中：例如目前该字符串为："name=test,app=web",那么a就等于["name=test","app=web"]
       let a = this.createWorkflow.label_str.split(",");
@@ -1135,8 +1140,7 @@ export default {
     },
     //获取namespace列表
     getNamespaces() {
-      httpClient
-        .get(this.namespaceListUrl)
+      getNamespacesReq()
         .then((res) => {
           this.namespaceList = res.data.namespaces; //res.data.namespaces 是根据后端返回时的数据名写
           // console.log("获取数据为：", res.data.namespaces);
@@ -1158,31 +1162,21 @@ export default {
       this.getWorkflowData.params.limit = this.pagesize;
       console.log("本次请求为：", this.getWorkflowData.params);
 
-      // 根据过滤条件去发送get请求，重新获取dployemnt列表，为空则返回所有资源
-      // params：设置请求参数，会将这些参数附加到URL的查询字符串中，例如：http://127.0.0.1:8999/api/appsv1/getworkflows?filter_name=&namespace=huiju&page=1&limit=10
-      httpClient
-        .get(this.getWorkflowData.url, {
-          params: this.getWorkflowData.params,
-        })
+      getWorkflowsReq(this.getWorkflowData.params)
         .then((res) => {
           this.workflowList = res.data.items;
           this.workflowTotal = res.data.total;
-          //   res.data.items.forEach((data) => {
-          //     console.log("获取到workflow：", data);
-          //   });
-          //   console.log("获取到workflow：", this.workflowList[0].type);
           this.appLoading = false;
         })
         .catch((res) => {
           this.$message.error({
-            message: res.msg,
+            message: res.err,
           });
-          console.log("报错为：", res);
+          console.log("报错为：", res.err);
           //this.appLoading = false;
         });
     },
     //创建workflow对象
-    //创建deployment资源限制待解决
     createWorkflowFunc() {
       //先开启加载动画
       this.fullscreenLoading = true;
@@ -1194,8 +1188,7 @@ export default {
       );
       console.log("此时workflow为", this.createWorkflow);
       //组装好数据后开始创建
-      httpClient
-        .post(this.createWorkflowData.url, this.createWorkflowData.params)
+      createWorkflowReq(this.createWorkflowData.params)
         .then((res) => {
           this.$message.success({
             message: res.msg,
@@ -1290,6 +1283,7 @@ export default {
     resetNamespace() {
       this.namespaceValue = "";
       this.input = "";
+      this.getWorkflows();
     },
     //labels显示长度限制
     ellipsis(labels) {
@@ -1318,10 +1312,7 @@ export default {
     deleteWorkflow(id) {
       console.log("将删除：", id);
       this.deleteWorkflowData.params.id = id;
-      httpClient
-        .delete(this.deleteWorkflowData.url, {
-          params: this.deleteWorkflowData.params,
-        })
+      deleteWorkflowReq(this.deleteWorkflowData.params)
         .then((_) => {
           this.$message({
             type: "success",
@@ -1389,7 +1380,9 @@ export default {
     //然后去获取namespace列表
     this.getNamespaces();
     //获取workflow列表
-    this.getWorkflows();
+    if (this.namespaceValue == "") {
+      this.getWorkflows();
+    }
   },
 };
 </script>

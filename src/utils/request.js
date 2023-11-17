@@ -1,9 +1,12 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 import router from "@/router";
+import { ElMessage } from "element-plus";
+import baseURL from "./baseURL"; //导入url变量
 
 //新建axios对象
 const httpClient = axios.create({
+  baseURL, //不能写ip，只能写路由，否则打包后不会走代理（测试的话可以写ip加端口加路由）
   validateStatus(status) {
     return status >= 200 && status <= 504; //设置默认的合法的状态，若状态码不合法，则不会接收response
   },
@@ -15,19 +18,19 @@ httpClient.defaults.retryDelay = 1000; //请求重试时间间隔
 httpClient.defaults.shouldRetry = true; //是否重试
 
 // 创建一个取消令牌
-let cancelToken = null;
-let source = null;
+const cancelToken = axios.CancelToken;
+const source = cancelToken.source();
 
 //添加请求拦截器
 // 获取 token
 httpClient.interceptors.request.use(
   (config) => {
     //每次只有登陆的时候，才会重新创建cancelToken
-    if (config.url.includes("login")) {
-      cancelToken = axios.CancelToken;
-      source = cancelToken.source();
-    }
-    config.cancelToken = source.token; // 全局添加cancelToken,用于下面响应拦截器按需调用 cancelToken 的 cancel() 方法来取消请求。
+    // if (config.url.includes("login")) {
+    //   cancelToken = axios.CancelToken;
+    //   source = cancelToken.source();
+    // }
+    console.log("后端地址为：", config.baseURL);
     //添加header
     config.headers["Content-Type"] = "application/json";
     config.headers["Accept-Language"] = "zh-CN";
@@ -58,8 +61,10 @@ httpClient.interceptors.response.use(
       for (let k in response.data) {
         if (k == "data") {
           if (response.data[k].code == 10086) {
+            // config.cancelToken = source.token; // 全局添加cancelToken,用于下面响应拦截器按需调用 cancelToken 的 cancel() 方法来取消请求。
             source.cancel(response.data.msg); //发起取消其他正在进行的请求，使用source取消请求
-            alert(response.data.msg);
+            // alert(response.data.msg);
+            ElMessage(response.data.msg);
             router.push("/login");
           }
         }
@@ -69,7 +74,7 @@ httpClient.interceptors.response.use(
       return response.data; //否则直接返回响应的数据
     }
   },
-  //使用Axios发送请求时，如果请求发生错误，会产生一个error
+  // 使用Axios发送请求时，如果请求发生错误，会产生一个error
   (error) => {
     //当source.cancel发起取消请求的时候，会生成一个特定类型的错误对象。axios.isCancel() 方法用于检查给定的错误对象是否是由请求取消而引起的。
     if (axios.isCancel(error)) {

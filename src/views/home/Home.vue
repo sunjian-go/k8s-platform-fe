@@ -169,7 +169,12 @@
 //引入echarts
 import * as echarts from "echarts";
 import common from "../common/Config";
-import httpClient from "../../utils/request";
+import { getResourcesReq } from "@/api/home/home";
+import { getPodsReq } from "@/api/pod/pod";
+import { getServicesReq } from "@/api/service/service";
+import { getNodes } from "@/api/cluster/cluster";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+
 export default {
   data() {
     return {
@@ -220,15 +225,17 @@ export default {
     //获取namespace中所有资源
     getAllResourceNum() {
       this.dashLoading = true;
-      httpClient
-        .get(this.getAllResourceData.url)
+      getResourcesReq()
         .then((res) => {
+          this.$message.success({
+            message: res.msg,
+          });
           this.resourcesNp = res.data;
           this.getResourcesNumDash();
         })
         .catch((res) => {
           this.$message.error({
-            message: "获取资源失败：" + res.err,
+            message: "getresource: " + res.err,
           });
         })
         .finally(() => {
@@ -245,14 +252,14 @@ export default {
       //   this.resourcesNumDash.dispose();
       // }
       //初始化实例，绑定到dom上,只能用普通变量来接echarts的初始化，用正常的响应式变量会在点击legend名字的时候报错
-      let resourcesNumDash = echarts.init(
+      const resourcesNumDash = echarts.init(
         document.getElementById("resourceNumDash")
       );
       //echarts作图配置
       resourcesNumDash.setOption({
         //标题及字体颜色
         title: {
-          text: "Resources per Namespace",
+          text: "ResourceNum for Namespace",
           //textStyle: 字体颜色
           textStyle: { color: "rgb(134,135,136)" },
         },
@@ -396,8 +403,7 @@ export default {
       });
     },
     getPods() {
-      httpClient
-        .get(this.getPodData.url)
+      getPodsReq()
         .then((res) => {
           console.log("获取到pod总数为：", res.data.total);
           this.podTotalNum = res.data.total;
@@ -409,8 +415,7 @@ export default {
         });
     },
     getSvcs() {
-      httpClient
-        .get(this.getSvcData.url)
+      getServicesReq()
         .then((res) => {
           this.svcTotal = res.data.total;
           console.log("aaaaa:", res);
@@ -422,8 +427,7 @@ export default {
         });
     },
     getNamespaces() {
-      httpClient
-        .get(this.getNamespaceData.url)
+      getNamespacesReq()
         .then((res) => {
           // console.log("获取到namespace为：", res.data.namespaces);
           this.namespaceTotal = res.data.total;
@@ -440,8 +444,7 @@ export default {
         });
     },
     getNodes() {
-      httpClient
-        .get(this.getNodesData.url)
+      getNodes()
         .then((res) => {
           console.log("获取到node信息为：", res.data.items);
           this.nodeTotal = res.data.total;

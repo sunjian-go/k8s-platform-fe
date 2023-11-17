@@ -151,13 +151,7 @@
                     <el-button
                       type="danger"
                       icon="Delete"
-                      @click="
-                        handleConfirm(
-                          scope.row.metadata.name,
-                          '删除',
-                          deleteSvc
-                        )
-                      "
+                      @click="deleteBefor(scope.row)"
                       >删除</el-button
                     >
                     <!-- </el-col>
@@ -360,7 +354,12 @@
 </template>
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
+import {
+  getServicesReq,
+  createServicesReq,
+  deleteServiceReq,
+} from "@/api/service/service";
+import { getNamespacesReq } from "@/api/cluster/cluster";
 export default {
   data() {
     return {
@@ -515,8 +514,7 @@ export default {
       console.log("组装数据：", this.createServiceData.params);
 
       // 组装好数据后开始创建
-      httpClient
-        .post(this.createServiceData.url, this.createServiceData.params)
+      createServicesReq(this.createServiceData.params)
         .then((res) => {
           this.$message.success({
             message: res.msg,
@@ -555,8 +553,7 @@ export default {
     },
     //获取namespace列表
     getNamespaces() {
-      httpClient
-        .get(this.namespaceListUrl)
+      getNamespacesReq()
         .then((res) => {
           this.namespaceList = res.data.namespaces; //res.data.namespaces 是根据后端返回时的数据名写
           // console.log("获取数据为：", res.data.namespaces);
@@ -588,10 +585,7 @@ export default {
       this.getSvcData.params.page = this.currentPage;
       this.getSvcData.params.limit = this.pagesize;
       //   this.apploading = true;
-      httpClient
-        .get(this.getSvcData.url, {
-          params: this.getSvcData.params,
-        })
+      getServicesReq(this.getSvcData.params)
         .then((res) => {
           this.svcList = res.data.services;
           this.svctotal = res.data.total;
@@ -624,12 +618,6 @@ export default {
     openbox() {
       this.drawer = true;
     },
-    //创建svc
-    createSvc() {
-      //this.fullscreenLoading = true;
-      alert("等待后续开发");
-      this.scalestatus = false;
-    },
     //处理抽屉的关闭，double check 增加体验
     handleClose(done) {
       this.$confirm("还有未保存的工作哦确定关闭吗？")
@@ -638,6 +626,27 @@ export default {
         })
         .catch((_) => {});
     },
+    //删除前的判断
+    deleteBefor(row) {
+      let flag = 0;
+      for (let k in row.metadata.labels) {
+        if (row.metadata.labels[k] == "workflow") {
+          flag = 1;
+        }
+      }
+      if (flag == 1) {
+        this.$alert(
+          "这是由工作流创建的资源，请在工作流页面进行删除操作",
+          "提示！",
+          {
+            confirmButtonText: "确定",
+          }
+        );
+      } else {
+        //删除
+        this.handleConfirm(row.metadata.name, "删除", this.deleteSvc);
+      }
+    },
     //删除svc
     deleteSvc(svc) {
       console.log("要删除的namespoace是：", svc);
@@ -645,10 +654,7 @@ export default {
       this.deleteSvcData.params.namespace = this.namespaceValue;
       console.log("要删除的是：", this.deleteSvcData.params);
       //return;
-      httpClient
-        .delete(this.deleteSvcData.url, {
-          params: this.deleteSvcData.params,
-        })
+      deleteServiceReq(this.deleteSvcData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -706,7 +712,9 @@ export default {
     //然后去获取namespace列表
     this.getNamespaces();
     //获取service列表
-    this.getSvcs();
+    if (this.namespaceValue == "") {
+      this.getSvcs();
+    }
   },
   //watch是一个选项对象，用于监听数据的变化。
   watch: {

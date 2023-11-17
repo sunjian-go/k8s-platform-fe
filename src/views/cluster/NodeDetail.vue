@@ -65,7 +65,7 @@
           <el-col :span="24">
             <el-card shadow="never">
               <el-collapse v-model="activeNames" @change="handleChange">
-                <el-collapse-item style="background: red">
+                <el-collapse-item name="1">
                   <template #title>
                     <span style="font-size: 16px">系统信息</span>
                   </template>
@@ -96,10 +96,10 @@
             </el-card>
           </el-col>
           <!-- 标签 -->
-          <el-col :span="24">
+          <el-col :span="24" style="transform: translateY(10px)">
             <el-card shadow="never">
               <el-collapse v-model="activeNames" @change="handleChange">
-                <el-collapse-item>
+                <el-collapse-item name="2">
                   <template #title>
                     <span style="font-size: 16px">标签</span>
                   </template>
@@ -131,10 +131,10 @@
             </el-card>
           </el-col>
           <!-- 注释 -->
-          <el-col :span="24">
+          <el-col :span="24" style="transform: translateY(20px)">
             <el-card shadow="never">
               <el-collapse v-model="activeNames" @change="handleChange">
-                <el-collapse-item>
+                <el-collapse-item name="3">
                   <template #title>
                     <span style="font-size: 16px">注释</span>
                   </template>
@@ -164,10 +164,10 @@
             </el-card>
           </el-col>
           <!-- Taints -->
-          <el-col :span="24">
+          <el-col :span="24" style="transform: translateY(30px)">
             <el-card shadow="never">
               <el-collapse v-model="activeNames" @change="handleChange">
-                <el-collapse-item>
+                <el-collapse-item name="4">
                   <template #title>
                     <span style="font-size: 16px">Taints</span>
                   </template>
@@ -205,7 +205,7 @@
 </template>
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
+import { getNodeDetailsReq } from "@/api/cluster/cluster";
 export default {
   data() {
     return {
@@ -250,21 +250,23 @@ export default {
           name: "",
         },
       },
+      activeNames: ["1"],
     };
   },
   methods: {
     //获取从url传过来的node名
     getNodeInfo() {
+      console.log("获取到节点名为：", this.nodename);
       // 获取当前页面的 URL 参数
       const urlParams = new URLSearchParams(window.location.search);
       // 获取特定名称的参数值
       this.nodename = urlParams.get("name");
+      console.log("获取到节点名为：", this.nodename);
     },
     //获取node详情
     getNodeDetail(node) {
       this.getNodeDetailData.params.name = node;
-      httpClient
-        .get(this.getNodeDetailData.url, this.getNodeDetailData)
+      getNodeDetailsReq(this.getNodeDetailData.params)
         .then((res) => {
           console.log("node详情为：", res.data);
           this.node.ip = res.data.status.addresses[0].address;

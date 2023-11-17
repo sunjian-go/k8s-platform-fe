@@ -235,13 +235,7 @@
                     <el-button
                       type="danger"
                       icon="Delete"
-                      @click="
-                        handleConfirm(
-                          scope.row.metadata.name,
-                          '删除',
-                          deleteDeployment
-                        )
-                      "
+                      @click="deleteBefor(scope.row)"
                       >删除</el-button
                     >
                   </div>
@@ -465,9 +459,19 @@
 
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
+import {
+  getDeploymentsReq,
+  getDeploymentsDetailReq,
+  deleteDeploymentsReq,
+  restartDeploymentsReq,
+  createDeploymentsReq,
+  scaleDeploymentsReq,
+  updateDeploymentsReq,
+} from "@/api/deployment/deployment";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+
 export default {
   data() {
     return {
@@ -637,8 +641,7 @@ export default {
     },
     //获取namespace列表
     getNamespaces() {
-      httpClient
-        .get(this.namespaceListUrl)
+      getNamespacesReq()
         .then((res) => {
           this.namespaceList = res.data.namespaces; //res.data.namespaces 是根据后端返回时的数据名写
           // console.log("获取数据为：", res.data.namespaces);
@@ -662,10 +665,7 @@ export default {
 
       // 根据过滤条件去发送get请求，重新获取dployemnt列表，为空则返回所有资源
       // params：设置请求参数，会将这些参数附加到URL的查询字符串中，例如：http://127.0.0.1:8999/api/appsv1/getdeployments?filter_name=&namespace=huiju&page=1&limit=10
-      httpClient
-        .get(this.getDeploymentData.url, {
-          params: this.getDeploymentData.params,
-        })
+      getDeploymentsReq(this.getDeploymentData.params)
         .then((res) => {
           this.deploymentList = res.data.items;
           this.deploymentTotal = res.data.total;
@@ -730,8 +730,7 @@ export default {
       this.createDeploymentData.params.mem = memory;
       console.log("发送前：", this.createDeploymentData.params);
       //组装好数据后开始创建
-      httpClient
-        .post(this.createDeploymentData.url, this.createDeploymentData.params)
+      createDeploymentsReq(this.createDeploymentData.params)
         .then((res) => {
           this.$message.success({
             message: res.msg,
@@ -755,7 +754,6 @@ export default {
       //this.$refs可以获取到该表单对象所有组件的值
       // resetFields方法可以重置表单字段的值
       this.$refs[formName].resetFields();
-      //this.namespaceValue = "default";
     },
     //提交deployment参数
     submitForm(formName) {
@@ -801,8 +799,7 @@ export default {
       console.log("将重启：", obj, "namespace为：", this.namespaceValue);
       this.restartDeploymentData.params.name = obj;
       this.restartDeploymentData.params.namespace = this.namespaceValue;
-      httpClient
-        .put(this.restartDeploymentData.url, this.restartDeploymentData.params)
+      restartDeploymentsReq(this.restartDeploymentData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -818,15 +815,33 @@ export default {
           });
         });
     },
+    //删除前的判断
+    deleteBefor(row) {
+      let flag = 0;
+      for (let k in row.metadata.labels) {
+        if (row.metadata.labels[k] == "workflow") {
+          flag = 1;
+        }
+      }
+      if (flag == 1) {
+        this.$alert(
+          "这是由工作流创建的资源，请在工作流页面进行删除操作",
+          "提示！",
+          {
+            confirmButtonText: "确定",
+          }
+        );
+      } else {
+        //删除
+        this.handleConfirm(row.metadata.name, "删除", this.deleteDeployment);
+      }
+    },
     //删除deployment
     deleteDeployment(obj) {
       console.log("将删除：", obj, "namespace为：", this.namespaceValue);
       this.deleteDeploymentData.params.name = obj;
       this.deleteDeploymentData.params.namespace = this.namespaceValue;
-      httpClient
-        .delete(this.deleteDeploymentData.url, {
-          params: this.deleteDeploymentData.params,
-        })
+      deleteDeploymentsReq(this.deleteDeploymentData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -879,8 +894,7 @@ export default {
     scaleDeployment() {
       this.scaleDeploymentData.params.replca = this.num;
       console.log("扩缩容的对象为：", this.scaleDeploymentData.params);
-      httpClient
-        .put(this.scaleDeploymentData.url, this.scaleDeploymentData.params)
+      scaleDeploymentsReq(this.scaleDeploymentData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -904,10 +918,7 @@ export default {
         this.deploymentDetailData.params.namespace = this.namespaceValue;
       }
       this.deploymentDetailData.params.namespace = obj.metadata.namespace;
-      httpClient
-        .get(this.deploymentDetailData.url, {
-          params: this.deploymentDetailData.params,
-        })
+      getDeploymentsDetailReq(this.deploymentDetailData.params)
         .then((res) => {
           console.log("deployment详情为：", res.data);
           this.contentYaml = this.jsontoyaml(res.data);
@@ -924,8 +935,7 @@ export default {
       this.updateDeploymentData.params.content = JSON.stringify(
         yaml2obj.load(this.contentYaml)
       );
-      httpClient
-        .put(this.updateDeploymentData.url, this.updateDeploymentData.params)
+      updateDeploymentsReq(this.updateDeploymentData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -958,13 +968,14 @@ export default {
   },
   //watch是一个选项对象，用于监听数据的变化。
   watch: {
-    //监听namespace的值,若发生变化，则执行handler方法中的内容
+    //监听当前页面namespace的值,若发生变化，则执行handler方法中的内容
     namespaceValue: {
       handler() {
         //将namespace的值存入本地，用于刷新页面或者path切换后依旧能获取得之前设置的namespace值
         localStorage.setItem("namespace", this.namespaceValue);
         // 页面刷新或切换的时候，把页数重新置为1并且重新获取deployment列表
         this.currentPage = 1;
+        // console.log("namespace值变了");
         this.getDeployments();
       },
     },
@@ -980,8 +991,14 @@ export default {
     }
     //然后去获取namespace列表
     this.getNamespaces();
-    //获取deployment列表
-    this.getDeployments();
+
+    //获取deployment列表(当在别的页面切换了namespace,每次再加载这个页面，namespace的值默认会被初始化为空，如果不加以限制，
+    // 每次切换到该页面都会发起2次get请求，一次是在这，另一次在监听namespace那个方法里[因为监听到别的页面修改了namepoace的值]）
+    // 所以在这加个判断，只有namespace值为空时，才会去获取deployement列表，就实现了该页面只初始化一次deployment列表值
+    if (this.namespaceValue == "") {
+      // console.log("开始加载deployment");
+      this.getDeployments();
+    }
   },
 };
 </script>

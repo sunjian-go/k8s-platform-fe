@@ -216,19 +216,6 @@
                       >YAML</el-button
                     >
                     <el-button
-                      disabled="restartBool"
-                      type="primary"
-                      icon="RefreshLeft"
-                      @click="
-                        handleConfirm(
-                          scope.row.metadata.name,
-                          '重启',
-                          restartStatefulSet
-                        )
-                      "
-                      >重启</el-button
-                    >
-                    <el-button
                       type="danger"
                       icon="Delete"
                       @click="
@@ -439,12 +426,15 @@
 
 <script>
 import common from "../common/Config";
-import httpClient from "../../utils/request";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
-// 必须导入
-//import JsonEditorVue from "json-editor-vue3";
-//import { codemirror } from "codemirror-editor-vue3";
+import {
+  getStatefulSetsReq,
+  updateStatefulSetsReq,
+  getStatefulSetsDetailReq,
+  deleteStatefulSetReq,
+} from "@/api/statefulset/statefulset";
+import { getNamespacesReq } from "@/api/cluster/cluster";
 export default {
   //components: { codemirror },
   data() {
@@ -603,8 +593,7 @@ export default {
     },
     //获取namespace列表
     getNamespaces() {
-      httpClient
-        .get(this.namespaceListUrl)
+      getNamespacesReq()
         .then((res) => {
           this.namespaceList = res.data.namespaces; //res.data.namespaces 是根据后端返回时的数据名写
           // console.log("获取数据为：", res.data.namespaces);
@@ -628,10 +617,7 @@ export default {
 
       // 根据过滤条件去发送get请求，重新获取dployemnt列表，为空则返回所有资源
       // params：设置请求参数，会将这些参数附加到URL的查询字符串中，例如：http://127.0.0.1:8999/api/appsv1/getstatefulsets?filter_name=&namespace=huiju&page=1&limit=10
-      httpClient
-        .get(this.getStatefulSetData.url, {
-          params: this.getStatefulSetData.params,
-        })
+      getStatefulSetsReq(this.getStatefulSetData.params)
         .then((res) => {
           this.statefulsetList = res.data.items;
           this.statefulsetTotal = res.data.total;
@@ -649,73 +635,6 @@ export default {
           //this.appLoading = false;
         });
     },
-    //创建statefulset对象
-    createDeployFunc() {
-      //正则匹配，验证label
-      // "(^[A-Za-z]+=[A-Za-z0-9]+).*": 表示匹配以字母开头，后跟一个或多个字母或数字的键值对形式的字符串。其中^表示匹配字符串的开始，
-      // [A-Za-z]表示匹配任意一个英文字母，+表示匹配前面的模式一次或多次，[A-Za-z0-9]表示匹配任意一个英文字母或数字，.*表示匹配任意字符零次或多次。
-      let reg = new RegExp("(^[A-Za-z]+=[A-Za-z0-9]+).*");
-      //如果不匹配
-      if (!reg.test(this.createStatefulSet.label_str)) {
-        this.$message.warning({
-          message: "标签填写异常，请确认后重新填写",
-        });
-        return;
-      }
-      // 开启加载loading动画
-      this.fullscreenLoading = true;
-      let label = new Map();
-      let cpu, memory;
-      // 将label_str字符串通过","进行分割，返回一个数组存储在a中：例如目前该字符串为："name=test,app=web",那么a就等于["name=test","app=web"]
-      let a = this.createStatefulSet.label_str.split(",");
-      //遍历a数组中的每个元素
-      a.forEach((item) => {
-        // item就是每个元素，将每个元素通过"="进行分割，得到一个子字符串数组b，例如，如果当前元素是"name=test"，则b将是["name", "test"]。
-        let b = item.split("=");
-        // 将分割后的子字符串数组中的第一个元素作为键，第二个元素作为值，存储在上面创建的label对象(map)中。
-        label[b[0]] = b[1];
-      });
-      let resourceList = this.createStatefulSet.resource.split("/");
-      cpu = resourceList[0];
-      memory = resourceList[1] + "Gi";
-      // 先组装好类型一样的数据
-      this.createStatefulSetData.params.name = this.createStatefulSet.name;
-      this.createStatefulSetData.params.namespace =
-        this.createStatefulSet.namespace;
-      this.createStatefulSetData.params.img = this.createStatefulSet.image;
-      this.createStatefulSetData.params.replicas =
-        this.createStatefulSet.replicas;
-      //然后开始把个别特殊的数据重新组装一遍
-      // parseInt：将字符串转为整数
-      this.createStatefulSetData.params.containerPort = parseInt(
-        this.createStatefulSet.container_port
-      );
-      //把上面调好的数据进行组装
-      this.createStatefulSetData.params.label = label;
-      this.createStatefulSetData.params.cpu = cpu;
-      this.createStatefulSetData.params.mem = memory;
-      console.log("发送前：", this.createStatefulSetData.params);
-      //组装好数据后开始创建
-      httpClient
-        .post(this.createStatefulSetData.url, this.createStatefulSetData.params)
-        .then((res) => {
-          this.$message.success({
-            message: res.msg,
-          });
-          // 创建之后重新获取下该namespace的statefulset列表
-          this.getStatefulSets();
-        })
-        .catch((res) => {
-          this.$message.error({
-            message: res.err,
-          });
-        });
-      //重置表单，无论创建成功与否，都会重置表单
-      this.resetForm("createStatefulSet");
-      //关闭动画加载和抽屉
-      this.fullscreenLoading = false;
-      this.drawer = false;
-    },
     //重置表单
     resetForm(formName) {
       //this.$refs可以获取到该表单对象所有组件的值
@@ -723,17 +642,7 @@ export default {
       this.$refs[formName].resetFields();
       //this.namespaceValue = "default";
     },
-    //提交statefulset参数
-    submitForm(formName) {
-      //验证表单的每个规则是否通过，通过则调用createDeployFunc，反之返回false
-      this.$refs[formName].validate((valid) => {
-        if (valid) {
-          this.createDeployFunc();
-        } else {
-          return false;
-        }
-      });
-    },
+
     //刷新页面的时候将namespace置为默认值
     resetNamespace() {
       this.namespaceValue = "";
@@ -762,41 +671,14 @@ export default {
       console.log("当前页: ", this.currentPage);
       this.getStatefulSets();
     },
-    //重启statefulset
-    restartStatefulSet(obj) {
-      console.log("将重启：", obj, "namespace为：", this.namespaceValue);
-      this.restartStatefulSetData.params.name = obj;
-      this.restartStatefulSetData.params.namespace = this.namespaceValue;
-      httpClient
-        .put(
-          this.restartStatefulSetData.url,
-          this.restartStatefulSetData.params
-        )
-        .then((res) => {
-          this.$message({
-            type: "success",
-            message: name + "重启成功",
-          });
-          // 重启之后重新获取下该namespace的statefulset列表
-          this.getStatefulSets();
-        })
-        .catch((res) => {
-          this.$message({
-            type: "info",
-            message: name + "重启失败",
-          });
-        });
-    },
+
     //删除statefulset
     deleteStatefulSet(obj) {
       console.log("将删除：", obj, "namespace为：", this.namespaceValue);
       this.deleteStatefulSetData.params.name = obj;
       this.deleteStatefulSetData.params.namespace = this.namespaceValue;
-      httpClient
-        .delete(this.deleteStatefulSetData.url, {
-          params: this.deleteStatefulSetData.params,
-        })
-        .then((res) => {
+      deleteStatefulSetReq(this.deleteStatefulSetData.params)
+        .then((_) => {
           this.$message({
             type: "success",
             message: name + "删除成功",
@@ -804,7 +686,7 @@ export default {
           // 删除之后重新获取下该namespace的statefulset列表
           this.getStatefulSets();
         })
-        .catch((res) => {
+        .catch((_) => {
           this.$message({
             type: "info",
             message: name + "删除失败",
@@ -838,13 +720,6 @@ export default {
           });
         });
     },
-    //扩缩容之前获取到的当前statefulset的副本数
-    getreplcanum(objnum, name) {
-      this.scaleStatefulSetData.params.name = name;
-      this.scaleStatefulSetData.params.namespace = this.namespaceValue;
-      this.num = objnum;
-    },
-
     //获取statefulset详情
     getStatefulSetDetail(obj) {
       this.statefulsetDetailData.params.name = obj.metadata.name;
@@ -852,10 +727,7 @@ export default {
         this.statefulsetDetailData.params.namespace = this.namespaceValue;
       }
       this.statefulsetDetailData.params.namespace = obj.metadata.namespace;
-      httpClient
-        .get(this.statefulsetDetailData.url, {
-          params: this.statefulsetDetailData.params,
-        })
+      getStatefulSetsDetailReq(this.statefulsetDetailData.params)
         .then((res) => {
           console.log("statefulset详情为：", res.data);
           this.contentYaml = this.jsontoyaml(res.data);
@@ -872,8 +744,8 @@ export default {
       this.updateStatefulSetData.params.content = JSON.stringify(
         yaml2obj.load(this.contentYaml)
       );
-      httpClient
-        .put(this.updateStatefulSetData.url, this.updateStatefulSetData.params)
+
+      updateStatefulSetsReq(this.updateStatefulSetData.params)
         .then((res) => {
           this.$message({
             type: "success",
@@ -939,8 +811,11 @@ export default {
     }
     //然后去获取namespace列表
     this.getNamespaces();
+
     //获取statefulset列表
-    this.getStatefulSets();
+    if (this.namespaceValue == "") {
+      this.getStatefulSets();
+    }
   },
 };
 </script>

@@ -18,6 +18,13 @@ module.exports = defineConfig({
     host: "0.0.0.0", //监听地址
     port: 8090, // 启动端口号
     open: true, // 启动后是否自动打开网页
+    proxy: {
+      //代理
+      "/api": {
+        target: "http://127.0.0.1:8999",
+        changeOrigin: true,
+      },
+    },
   },
   transpileDependencies: true,
   //关闭语法检测
