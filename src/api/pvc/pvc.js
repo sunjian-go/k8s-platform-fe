@@ -28,3 +28,10 @@ export function deletePvcReq(deletePvcData) {
     params: deletePvcData,
   });
 }
+export function createPvcReq(createPvcData) {
+  return httpClient({
+    method: "post",
+    url: "/corev1/createPvc",
+    data: createPvcData,
+  });
+}

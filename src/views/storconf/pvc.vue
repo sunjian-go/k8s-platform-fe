@@ -61,7 +61,6 @@
               <el-col :span="6">
                 <div>
                   <el-button
-                    :disabled="true"
                     icon="Edit"
                     type="primary"
                     style="border-radius: 4px"
@@ -293,11 +292,11 @@
               label-width="80px"
               ref="createPVC"
               :rules="createPVCRules"
-              :model="createPVC"
+              :model="createPvcData"
             >
               <!-- prop名字与规则里面的name保持一致 -->
-              <el-form-item label="名称" prop="name" class="deploy-create-form">
-                <el-input v-model="createPVC.name"></el-input>
+              <el-form-item label="名称" prop="pvc_name" class="deploy-create-form">
+                <el-input v-model="createPvcData.pvc_name"></el-input>
               </el-form-item>
               <el-form-item
                 label="命名空间"
@@ -305,7 +304,7 @@
                 class="deploy-create-form"
               >
                 <el-select
-                  v-model="createPVC.namespace"
+                  v-model="createPvcData.namespace"
                   filterable
                   placeholder="请选择"
                   style="width: 100%"
@@ -318,15 +317,15 @@
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="类型" prop="type" style="width: 90%">
+              <el-form-item label="访问模式" prop="access_mode" style="width: 90%">
                 <el-select
-                  v-model="createPVC.type"
+                  v-model="createPvcData.access_mode"
                   filterable
                   placeholder="请选择"
                   style="width: 100%"
                 >
                   <el-option
-                    v-for="(v, i) in pvcTypes"
+                    v-for="(v, i) in accModes"
                     :key="i"
                     :label="v"
                     :value="v"
@@ -334,46 +333,26 @@
                 </el-select>
               </el-form-item>
               <el-form-item
-                label="标签"
-                prop="label_str"
+                label="容量"
+                prop="storage_size"
                 class="deploy-create-form"
               >
                 <!-- placeholder: 用来在输入框显示提示信息 -->
                 <el-input
-                  v-model="createPVC.label_str"
-                  placeholder="示例：app=test,name=test"
+                  v-model="createPvcData.storage_size"
+                  placeholder="单位为G"
                 ></el-input>
               </el-form-item>
               <el-form-item
-                label="容器端口"
-                prop="container_port"
+                label="存储类"
+                prop="storage_class_name"
                 class="deploy-create-form"
               >
                 <el-input
-                  v-model="createPVC.container_port"
-                  placeholder="示例：80"
+                  v-model="createPvcData.storage_class_name"
+                  placeholder=""
                 ></el-input>
-              </el-form-item>
-              <el-form-item
-                label="pod端口"
-                prop="port"
-                class="deploy-create-form"
-              >
-                <el-input
-                  v-model="createPVC.port"
-                  placeholder="示例：80"
-                ></el-input>
-              </el-form-item>
-              <el-form-item
-                v-if="createPVC.type == 'NodePort'"
-                label="NodePort"
-                class="deploy-create-form"
-              >
-                <el-input
-                  v-model="createPVC.node_port"
-                  placeholder="示例：80 (不写默认随机端口)"
-                ></el-input>
-              </el-form-item>
+              </el-form-item>    
             </el-form>
           </el-col>
         </el-row>
@@ -421,8 +400,10 @@ import {
   getPvcsDetailReq,
   updatePvcReq,
   deletePvcReq,
+  createPvcReq,
 } from "@/api/pvc/pvc";
 import { getNamespacesReq } from "@/api/cluster/cluster";
+import { thisExpression } from "@babel/types";
 
 export default {
   data() {
@@ -467,7 +448,7 @@ export default {
       // 定义el-form规则,只有定义了规则的input前面才会有红点,也就是必填项
       // 规则名要与结构体中的名字保持一致
       createPVCRules: {
-        name: [
+        pvc_name: [
           {
             required: true,
             message: "请填写名称",
@@ -481,59 +462,29 @@ export default {
             trigger: "change",
           },
         ],
-        type: [
+        access_mode: [
           {
             required: true,
-            message: "请选择类型",
+            message: "请选择访问模式",
             trigger: "change",
           },
         ],
-        container_port: [
+        storage_size: [
           {
             required: true,
-            message: "请填写容器端口",
+            message: "请填写容量",
             trigger: "change",
           },
         ],
-        port: [
+        storage_class_name: [
           {
             required: true,
-            message: "请填pod端口",
-            trigger: "change",
-          },
-        ],
-        label_str: [
-          {
-            required: true,
-            message: "请填写标签",
+            message: "",
             trigger: "change",
           },
         ],
       },
-
-      createPVC: {
-        name: "",
-        namespace: "",
-        type: "",
-        container_port: "",
-        port: "",
-        node_port: "",
-        label_str: "",
-        label: {},
-      },
-      pvcTypes: ["ClusterIP", "NodePort", "LoadBalancer"],
-      createPVCData: {
-        url: common.K8sCreatePVC,
-        params: {
-          name: "",
-          namespace: "",
-          type: "",
-          container_port: 0,
-          port: 0,
-          node_port: 0,
-          label: {},
-        },
-      },
+      accModes: ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany","ReadWriteOncePod"],
       pvcDetailData: {
         url: common.K8sGetPvcDetail,
         params: {
@@ -553,6 +504,14 @@ export default {
       },
       //编辑器配置
       pvcOptions: common.cmOptions,
+      //创建pvc
+      createPvcData:{
+        namespace:"",
+        pvc_name:"",
+        access_mode:"",
+        storage_size:"",
+        storage_class_name:"",
+      },
     };
   },
   methods: {
@@ -640,6 +599,23 @@ export default {
         }
       });
     },
+    createPVCFunc(){
+      this.createPvcData.storage_size=parseInt(this.createPvcData.storage_size)
+      console.log("需要创建的pvc数据：",this.createPvcData)
+      createPvcReq(this.createPvcData).then(res=>{
+        this.$message.success({
+          message:res.msg
+        })
+        this.getPVCs()
+      }).catch(res=>{
+        this.$message.error({
+          message:res.err
+        })
+      }).finally((_)=>{
+        this.drawer=false
+        this.resetForm("createPVC")
+      })
+    },
     //获取namespace列表
     getNamespaces() {
       getNamespacesReq()
@@ -680,6 +656,7 @@ export default {
           this.pvcList = res.data.items;
           this.pvctotal = res.data.total;
           console.log("获取到：", this.pvcList);
+          this.createPvcData.storage_class_name = res.data.items[0].spec.storageClassName
           this.apploading = false;
         })
         .catch((res) => {
@@ -708,16 +685,11 @@ export default {
     openbox() {
       this.drawer = true;
     },
-    //创建pvc
-    createPVC() {
-      //this.fullscreenLoading = true;
-      alert("等待后续开发");
-      this.scalestatus = false;
-    },
     //处理抽屉的关闭，double check 增加体验
     handleClose(done) {
       this.$confirm("还有未保存的工作哦确定关闭吗？")
         .then((_) => {
+          this.resetForm("createPVC")
           done();
         })
         .catch((_) => {});
@@ -736,7 +708,6 @@ export default {
             type: "success",
             message: pvc + "删除成功",
           });
-
           setTimeout(() => {
             // 在延时后执行的操作
             this.getPVCs();

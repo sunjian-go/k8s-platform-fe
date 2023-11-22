@@ -61,7 +61,6 @@
               <el-col :span="6">
                 <div>
                   <el-button
-                    :disabled="true"
                     icon="Edit"
                     type="primary"
                     style="border-radius: 4px"
@@ -295,11 +294,11 @@
               label-width="80px"
               ref="createSecret"
               :rules="createSecretRules"
-              :model="createSecret"
+              :model="createSecretData"
             >
               <!-- prop名字与规则里面的name保持一致 -->
               <el-form-item label="名称" prop="name" class="deploy-create-form">
-                <el-input v-model="createSecret.name"></el-input>
+                <el-input v-model="createSecretData.name"></el-input>
               </el-form-item>
               <el-form-item
                 label="命名空间"
@@ -307,7 +306,7 @@
                 class="deploy-create-form"
               >
                 <el-select
-                  v-model="createSecret.namespace"
+                  v-model="createSecretData.namespace"
                   filterable
                   placeholder="请选择"
                   style="width: 100%"
@@ -320,61 +319,23 @@
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="类型" prop="type" style="width: 90%">
-                <el-select
-                  v-model="createSecret.type"
-                  filterable
-                  placeholder="请选择"
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="(v, i) in secretTypes"
-                    :key="i"
-                    :label="v"
-                    :value="v"
-                  />
-                </el-select>
+              <el-form-item  class="deploy-create-form">
+                <div style="padding-left: 45%;padding-right: 45%;font-weight: bold;"><span>Data</span></div>
               </el-form-item>
-              <el-form-item
-                label="标签"
-                prop="label_str"
-                class="deploy-create-form"
-              >
-                <!-- placeholder: 用来在输入框显示提示信息 -->
-                <el-input
-                  v-model="createSecret.label_str"
-                  placeholder="示例：app=test,name=test"
-                ></el-input>
-              </el-form-item>
-              <el-form-item
-                label="容器端口"
-                prop="container_port"
-                class="deploy-create-form"
-              >
-                <el-input
-                  v-model="createSecret.container_port"
-                  placeholder="示例：80"
-                ></el-input>
-              </el-form-item>
-              <el-form-item
-                label="pod端口"
-                prop="port"
-                class="deploy-create-form"
-              >
-                <el-input
-                  v-model="createSecret.port"
-                  placeholder="示例：80"
-                ></el-input>
-              </el-form-item>
-              <el-form-item
-                v-if="createSecret.type == 'NodePort'"
-                label="NodePort"
-                class="deploy-create-form"
-              >
-                <el-input
-                  v-model="createSecret.node_port"
-                  placeholder="示例：80 (不写默认随机端口)"
-                ></el-input>
+              <el-form-item  class="deploy-create-form">
+                <div v-for="v,i in indexArr" :key="i">
+                  <el-row :gutter="10">
+                    <el-col :span="11">
+                    <el-input placeholder="Key" v-model="secdatas[i].key"></el-input>
+                    </el-col>
+                    <el-col :span="11">
+                      <el-input placeholder="Value" v-model="secdatas[i].value"></el-input>
+                    </el-col>
+                    <el-col :span="2">
+                      <el-icon @click="addvalue()"><Plus /></el-icon>
+                    </el-col>
+                  </el-row>
+                </div>
               </el-form-item>
             </el-form>
           </el-col>
@@ -384,7 +345,7 @@
         <el-button
           @click="
             drawer = false;
-            resetForm('createSecret');
+            handleClose()
           "
           >取消</el-button
         >
@@ -423,6 +384,7 @@ import {
   getSecretsDetailReq,
   updateSecretReq,
   deleteSecretReq,
+  createSecretReq
 } from "@/api/secret/secret";
 import { getNamespacesReq } from "@/api/cluster/cluster";
 
@@ -483,59 +445,21 @@ export default {
             trigger: "change",
           },
         ],
-        type: [
-          {
-            required: true,
-            message: "请选择类型",
-            trigger: "change",
-          },
-        ],
-        container_port: [
-          {
-            required: true,
-            message: "请填写容器端口",
-            trigger: "change",
-          },
-        ],
-        port: [
-          {
-            required: true,
-            message: "请填pod端口",
-            trigger: "change",
-          },
-        ],
-        label_str: [
-          {
-            required: true,
-            message: "请填写标签",
-            trigger: "change",
-          },
-        ],
-      },
-
-      createSecret: {
-        name: "",
-        namespace: "",
-        type: "",
-        container_port: "",
-        port: "",
-        node_port: "",
-        label_str: "",
-        label: {},
       },
       secretTypes: ["ClusterIP", "NodePort", "LoadBalancer"],
-      createSecretData: {
-        url: common.K8sCreateSecret,
-        params: {
-          name: "",
-          namespace: "",
-          type: "",
-          container_port: 0,
-          port: 0,
-          node_port: 0,
-          label: {},
-        },
+      secdatas:[
+      {
+        key:"",
+        value:""
       },
+      ],
+      dataIndex:0,
+      createSecretData: {
+        name:"",
+        namespace:"",
+        data:{},
+      },
+      indexArr:[1],
       secretDetailData: {
         url: common.K8sGetSecretDetail,
         params: {
@@ -642,6 +566,47 @@ export default {
         }
       });
     },
+    resetData(){
+        this.resetForm("createSecret")
+        this.indexArr=[1]
+        this.createSecretData.data={}
+        this.secdatas= [
+       {
+        key:"",
+        value:""
+       },
+        ]
+    },
+    createSecretFunc(){
+      for(let i in this.secdatas){
+        this.createSecretData.data[this.secdatas[i].key]=this.secdatas[i].value
+      }
+      console.log("组装好的data为: ",this.createSecretData)
+       createSecretReq(this.createSecretData).then(res=>{
+        this.$message.success({
+          message:res.msg
+        })
+        this.getSecrets()
+       }).catch(res=>{
+        this.$message.error({
+          message:res.err
+        })
+       }).finally((_)=>{
+        this.drawer=false
+        this.resetData()
+       })
+    },
+    //组装data
+    addvalue(){
+      this.indexArr.push(1)
+      this.secdatas.push(
+        {
+        key:"",
+        value:"",
+      },
+      )
+      console.log("data为：",this.secdatas)
+    },
     //获取namespace列表
     getNamespaces() {
       getNamespacesReq()
@@ -713,6 +678,7 @@ export default {
     handleClose(done) {
       this.$confirm("还有未保存的工作哦确定关闭吗？")
         .then((_) => {
+          this.resetData()
           done();
         })
         .catch((_) => {});
@@ -730,14 +696,16 @@ export default {
             type: "success",
             message: secret + "删除成功",
           });
-          this.getSecrets();
+         
         })
         .catch((res) => {
           this.$message({
             type: "info",
             message: secret + "删除失败",
           });
-        });
+        }).finally((_)=>{
+          this.getSecrets();
+        })
     },
     //操作类提示框：重启、删除..
     handleConfirm(name, play, playFunc) {

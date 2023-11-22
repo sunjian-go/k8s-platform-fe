@@ -28,3 +28,10 @@ export function deleteSecretReq(deleteSecretData) {
     params: deleteSecretData,
   });
 }
+export function createSecretReq(createSecretData) {
+  return httpClient({
+    method: "post",
+    url: "/corev1/createSecret",
+    data: createSecretData,
+  });
+}
