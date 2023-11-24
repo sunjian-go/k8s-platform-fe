@@ -81,7 +81,7 @@
                     icon="Edit"
                     type="primary"
                     style="border-radius: 4px"
-                    @click="waitdev()"
+                    @click="drawer=true"
                     v-loading.fullscreen.lock="fullscreenLoading"
                     >创建</el-button
                   >
@@ -289,7 +289,7 @@
               :model="createDaemonSet"
             >
               <el-form-item label="名称" prop="name" class="deploy-create-form">
-                <el-input v-model="createDaemonSet.name"></el-input>
+                <el-input v-model="createDaemonSetData.name"></el-input>
               </el-form-item>
               <el-form-item
                 label="命名空间"
@@ -297,7 +297,7 @@
                 class="deploy-create-form"
               >
                 <el-select
-                  v-model="createDaemonSet.namespace"
+                  v-model="createDaemonSetData.namespace"
                   filterable
                   placeholder="请选择"
                   style="width: 100%"
@@ -310,38 +310,6 @@
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="副本数" prop="replicas" style="width: 90%">
-                <el-input-number
-                  v-model="createDaemonSet.replicas"
-                  :min="1"
-                  :max="10"
-                  style="width: 80%"
-                ></el-input-number>
-                <!-- 弹出框 -->
-                <!-- placement 消息出现的位置 -->
-                <!-- trigger 触发方式 hover表示悬停 -->
-                <!-- content 显示的内容，也可以通过写入默认 slot 修改显示内容 -->
-                <el-popover
-                  style="width: 20%"
-                  placement="top"
-                  :width="100"
-                  trigger="hover"
-                  content="申请副本数上限为10个"
-                >
-                  <template #reference>
-                    <el-icon style="width: 2em; font-size: 18px; color: #4795ee"
-                      ><WarningFilled
-                    /></el-icon>
-                  </template>
-                </el-popover>
-              </el-form-item>
-              <el-form-item
-                label="镜像"
-                prop="image"
-                class="deploy-create-form"
-              >
-                <el-input v-model="createDaemonSet.image"></el-input>
-              </el-form-item>
               <el-form-item
                 label="标签"
                 prop="label_str"
@@ -349,9 +317,16 @@
               >
                 <!-- placeholder: 用来在输入框显示提示信息 -->
                 <el-input
-                  v-model="createDaemonSet.label_str"
+                  v-model="label_str"
                   placeholder="示例: project=ms,app=gateway"
                 ></el-input>
+              </el-form-item>
+              <el-form-item
+                label="镜像"
+                prop="image"
+                class="deploy-create-form"
+              >
+                <el-input v-model="createDaemonSetData.image"></el-input>
               </el-form-item>
               <el-form-item
                 label="资源配额"
@@ -359,7 +334,7 @@
                 class="deploy-create-form"
               >
                 <el-select
-                  v-model="createDaemonSet.resource"
+                  v-model="resource"
                   style="width: 100%"
                   placeholder="cpu/mem"
                 >
@@ -372,22 +347,12 @@
                   </el-option>
                 </el-select>
               </el-form-item>
-              <el-form-item
-                label="容器端口"
-                prop="container_port"
-                class="deploy-create-form"
-              >
-                <el-input
-                  v-model="createDaemonSet.container_port"
-                  placeholder="示例：80"
-                ></el-input>
-              </el-form-item>
               <el-form-item label="健康检查" class="deploy-create-form">
                 <!-- el-switch 开关按钮 -->
-                <el-switch v-model="createDaemonSet.health_check" />
+                <el-switch v-model="createDaemonSetData.healthCheck" />
               </el-form-item>
               <el-form-item label="检查路径" class="deploy-create-form">
-                <el-input v-model="createDaemonSet.health_path"></el-input>
+                <el-input v-model="createDaemonSetData.healthPath"></el-input>
               </el-form-item>
             </el-form>
           </el-col>
@@ -401,21 +366,13 @@
       </template>
     </el-drawer>
     <!-- yaml编辑器 -->
-    <el-dialog title="YAML信息" v-model="yamlDialog" width="45%" top="5%">
-      <!--:options 编辑器的配置  -->
-      <!-- @change 内容变化后会触发 -->
-      <codemirror
-        :value="contentYaml"
-        border
-        :options="cmOptions"
-        height="500"
-        style="font-size: 14px"
-        @change="onChange"
-      ></codemirror>
+    <el-dialog title="YAML信息" v-model="yamlDialog" width="70%" top="5%">
+      <!-- DevUI里面的编辑器 -->
+      <d-code-editor v-model="contentYaml" :options="{ language: 'yaml' }" style="height: 500px;"></d-code-editor>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="yamlDialog = false">取 消</el-button>
-          <el-button type="primary" @click="updateDaemonSet()">更 新</el-button>
+          <el-button type="primary" @click="updatePVC()">更 新</el-button>
         </span>
       </template>
     </el-dialog>
@@ -423,16 +380,16 @@
 </template>
 
 <script>
-import common from "../common/Config";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+import {
+deleteDaemonSetReq,
+getDaemonSetsDetailReq,
+getDaemonSetsReq,
+updateDaemonSetsReq,
+} from "@/api/daemonset/daemonset";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
-import {
-  getDaemonSetsReq,
-  updateDaemonSetsReq,
-  getDaemonSetsDetailReq,
-  deleteDaemonSetReq,
-} from "@/api/daemonset/daemonset";
-import { getNamespacesReq } from "@/api/cluster/cluster";
+import common from "../common/Config";
 
 export default {
   //components: { codemirror },
@@ -445,36 +402,61 @@ export default {
       input: "",
       drawer: false,
       direction: "rtl",
-      resources: ["0.5/1", "1/2", "2/4", "4/8"],
+      resources: ["250/512", "500/1024", "750/2048", "1000/4096"],
       fullscreenLoading: false,
-      createDaemonSet: {
+     
+      //创建daemonSet
+      label_str:"",
+      resource:"",
+      createDaemonSetData: {
         name: "",
         namespace: "",
-        replicas: 1,
-        image: "",
-        resource: "",
-        health_check: false,
-        health_path: "",
-        label_str: "",
         label: {},
-        container_port: "",
-      },
-      //发送请求时的参数
-      createDaemonSetData: {
-        url: common.K8sCreateDaemonSet,
-        params: {
-          name: "",
-          namespace: "",
-          img: "",
-          replicas: 0,
-          label: {},
-          cpu: "",
-          mem: "",
-          containerPort: 0,
-          healthCheck: false,
-          healthPath: "",
-        },
-        daemonsetList: [],
+        cpu: "",
+        mem: "",
+        healthCheck: false,
+        healthPath: "",
+        volume: [
+          {
+            volumeName: "",
+            type: "",
+            context: ""
+          }
+        ],
+        nodeSelectorLabel: {},
+        containers: [
+          {
+            name: "",
+            image: "",
+            ports: [
+              {
+                portName: "",
+                containerPort: 0,
+                hostPort: 0,
+                hostIP: ""
+              }
+            ],
+            montVolume: [
+              {
+                name: "",
+                mountPath: "",
+                readOnly: false,
+                subPath: ""
+              }
+            ],
+            envs: [
+              {
+                name: "",
+                value: ""
+              },
+              {
+                name: "",
+                value: ""
+              }
+            ],
+            imagePullpolicy: ""
+          }
+        ]
       },
 
       // 定义el-form规则,只有定义了规则的input前面才会有红点,也就是必填项
@@ -579,6 +561,9 @@ export default {
           content: "",
         },
       },
+      
+      
+    
     };
   },
   methods: {
@@ -786,17 +771,6 @@ export default {
     //yaml内容变化后调用,val不用传入，自动会获取更新后的yaml内容
     onChange(val) {
       this.contentYaml = val;
-    },
-    waitdev() {
-      this.$alert("等待后续开发...", "提示", {
-        confirmButtonText: "确定",
-        callback: (action) => {
-          this.$message({
-            type: "info",
-            message: `action: ${action}`,
-          });
-        },
-      });
     },
   },
   //watch是一个选项对象，用于监听数据的变化。

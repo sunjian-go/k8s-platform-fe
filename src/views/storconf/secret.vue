@@ -344,7 +344,6 @@
       <template #footer>
         <el-button
           @click="
-            drawer = false;
             handleClose()
           "
           >取消</el-button
@@ -355,38 +354,30 @@
       </template>
     </el-drawer>
     <!-- yaml编辑器 -->
-    <el-dialog title="YAML信息" v-model="yamlDialog" width="45%" top="5%">
-      <!--:options 编辑器的配置  -->
-      <!-- @change 内容变化后会触发 -->
-      <codemirror
-        :value="contentYaml"
-        border
-        :options="secretOptions"
-        height="500"
-        style="font-size: 14px"
-        @change="onChange"
-      ></codemirror>
+    <el-dialog title="YAML信息" v-model="yamlDialog" width="70%" top="5%">
+      <!-- DevUI里面的编辑器 -->
+      <d-code-editor v-model="contentYaml" :options="{ language: 'yaml' }" style="height: 500px;"></d-code-editor>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="yamlDialog = false">取 消</el-button>
-          <el-button type="primary" @click="updateSecret()">更 新</el-button>
+          <el-button type="primary" @click="updatePVC()">更 新</el-button>
         </span>
       </template>
     </el-dialog>
   </div>
 </template>
 <script>
-import common from "../common/Config";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+import {
+createSecretReq,
+deleteSecretReq,
+getSecretsDetailReq,
+getSecretsReq,
+updateSecretReq
+} from "@/api/secret/secret";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
-import {
-  getSecretsReq,
-  getSecretsDetailReq,
-  updateSecretReq,
-  deleteSecretReq,
-  createSecretReq
-} from "@/api/secret/secret";
-import { getNamespacesReq } from "@/api/cluster/cluster";
+import common from "../common/Config";
 
 export default {
   data() {
@@ -447,6 +438,7 @@ export default {
         ],
       },
       secretTypes: ["ClusterIP", "NodePort", "LoadBalancer"],
+      //创建secret所需
       secdatas:[
       {
         key:"",
@@ -678,6 +670,7 @@ export default {
     handleClose(done) {
       this.$confirm("还有未保存的工作哦确定关闭吗？")
         .then((_) => {
+          this.drawer=false
           this.resetData()
           done();
         })

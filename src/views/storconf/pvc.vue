@@ -317,7 +317,7 @@
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="访问模式" prop="access_mode" style="width: 90%">
+              <el-form-item label="访问模式" prop="access_mode" class="deploy-create-form">
                 <el-select
                   v-model="createPvcData.access_mode"
                   filterable
@@ -348,10 +348,14 @@
                 prop="storage_class_name"
                 class="deploy-create-form"
               >
-                <el-input
-                  v-model="createPvcData.storage_class_name"
-                  placeholder=""
-                ></el-input>
+                  <el-select v-model="createPvcData.storage_class_name" placeholder="Select" class="ploy-crdeeate-form">
+                    <el-option
+                        v-for="(v,k) in storageClassList"
+                        :key="k"
+                        :label="v.metadata.name"
+                        :value="v.metadata.name"
+                        />
+                  </el-select>
               </el-form-item>    
             </el-form>
           </el-col>
@@ -360,8 +364,7 @@
       <template #footer>
         <el-button
           @click="
-            drawer = false;
-            resetForm('createPVC');
+            handleClose
           "
           >取消</el-button
         >
@@ -371,17 +374,9 @@
       </template>
     </el-drawer>
     <!-- yaml编辑器 -->
-    <el-dialog title="YAML信息" v-model="yamlDialog" width="45%" top="5%">
-      <!--:options 编辑器的配置  -->
-      <!-- @change 内容变化后会触发 -->
-      <codemirror
-        :value="contentYaml"
-        border
-        :options="pvcOptions"
-        height="500"
-        style="font-size: 14px"
-        @change="onChange"
-      ></codemirror>
+    <el-dialog title="YAML信息" v-model="yamlDialog" width="70%" top="5%">
+      <!-- DevUI里面的编辑器 -->
+      <d-code-editor v-model="contentYaml" :options="{ language: 'yaml' }" style="height: 500px;"></d-code-editor>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="yamlDialog = false">取 消</el-button>
@@ -392,22 +387,34 @@
   </div>
 </template>
 <script>
-import common from "../common/Config";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+import {
+createPvcReq,
+deletePvcReq,
+getPvcsDetailReq,
+getPvcsReq,
+getStorageClassesReq,
+updatePvcReq
+} from "@/api/pvc/pvc";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
-import {
-  getPvcsReq,
-  getPvcsDetailReq,
-  updatePvcReq,
-  deletePvcReq,
-  createPvcReq,
-} from "@/api/pvc/pvc";
-import { getNamespacesReq } from "@/api/cluster/cluster";
-import { thisExpression } from "@babel/types";
+import common from "../common/Config";
 
 export default {
   data() {
     return {
+      contentYaml2:"hello",
+      code: `export class cell {
+        public row:number;
+        public col: number;
+        public live: boolean;
+
+        constructor(row: number, col: number, live: boolean) {
+            this.row = row;
+            this.col = col;
+            this.live = live;
+        }
+      }`,
       direction: "rtl",
       apploading: true,
       namespaceValue: "",
@@ -512,6 +519,7 @@ export default {
         storage_size:"",
         storage_class_name:"",
       },
+      storageClassList:[],
     };
   },
   methods: {
@@ -561,7 +569,7 @@ export default {
           console.log("pvc详情为：", res.data);
           this.contentYaml = this.jsontoyaml(res.data);
           this.yamlDialog = true;
-          //   console.log("pvc详情YAML为：", this.jsontoyaml(res.data));
+            console.log("pvc详情YAML为：", this.contentYaml);
         })
         .catch((res) => {
           console.log("获取详情失败：", res.err);
@@ -585,7 +593,6 @@ export default {
       //this.$refs可以获取到该表单对象所有组件的值
       // resetFields方法可以重置表单字段的值
       this.$refs[formName].resetFields();
-      //this.namespaceValue = "default";
     },
     //提交pvc参数
     submitForm(formName) {
@@ -684,11 +691,21 @@ export default {
     //将创建弹出框的状态码置为true
     openbox() {
       this.drawer = true;
+      getStorageClassesReq().
+      then(res=>{
+        this.storageClassList=res.data.storageClasses
+        console.log("获取到：",this.storageClassList) 
+      }).catch(res=>{
+        this.$message.error({
+          message: res.err
+        })
+      })
     },
     //处理抽屉的关闭，double check 增加体验
     handleClose(done) {
       this.$confirm("还有未保存的工作哦确定关闭吗？")
         .then((_) => {
+          this.drawer=false
           this.resetForm("createPVC")
           done();
         })
@@ -795,5 +812,8 @@ export default {
 .boxitem {
   float: right;
   width: 10px;
+}
+.deploy-create-form{
+  width: 380px;
 }
 </style>

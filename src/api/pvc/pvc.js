@@ -7,6 +7,12 @@ export function getPvcsReq(getPvcsData) {
     params: getPvcsData,
   });
 }
+export function getStorageClassesReq() {
+  return httpClient({
+    method: "get",
+    url: "/corev1/getStorageClasses",
+  });
+}
 export function getPvcsDetailReq(getPvcDetailData) {
   return httpClient({
     method: "get",

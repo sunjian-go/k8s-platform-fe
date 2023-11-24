@@ -28,3 +28,10 @@ export function deleteConfigMapReq(deleteConfigMapData) {
     params: deleteConfigMapData,
   });
 }
+export function createConfigMapReq(createConfigMapData) {
+  return httpClient({
+    method: "post",
+    url: "/corev1/createcm",
+    data: createConfigMapData,
+  });
+}

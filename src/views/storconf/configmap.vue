@@ -61,7 +61,6 @@
               <el-col :span="6">
                 <div>
                   <el-button
-                    :disabled="true"
                     icon="Edit"
                     type="primary"
                     style="border-radius: 4px"
@@ -102,7 +101,7 @@
                       <div v-if="key == 'labels'">
                         <div
                           v-for="(v, k) in scope.row.metadata.labels"
-                          ::key="k"
+                          :key="k"
                         >
                           <el-popover
                             style="width: 100%"
@@ -280,11 +279,11 @@
               label-width="80px"
               ref="createConfigMap"
               :rules="createConfigMapRules"
-              :model="createConfigMap"
+              :model="createConfigMapData"
             >
               <!-- prop名字与规则里面的name保持一致 -->
               <el-form-item label="名称" prop="name" class="deploy-create-form">
-                <el-input v-model="createConfigMap.name"></el-input>
+                <el-input v-model="createConfigMapData.name"></el-input>
               </el-form-item>
               <el-form-item
                 label="命名空间"
@@ -292,7 +291,7 @@
                 class="deploy-create-form"
               >
                 <el-select
-                  v-model="createConfigMap.namespace"
+                  v-model="createConfigMapData.namespace"
                   filterable
                   placeholder="请选择"
                   style="width: 100%"
@@ -305,61 +304,23 @@
                   />
                 </el-select>
               </el-form-item>
-              <el-form-item label="类型" prop="type" style="width: 90%">
-                <el-select
-                  v-model="createConfigMap.type"
-                  filterable
-                  placeholder="请选择"
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="(v, i) in cmTypes"
-                    :key="i"
-                    :label="v"
-                    :value="v"
-                  />
-                </el-select>
+              <el-form-item  class="deploy-create-form">
+                <div style="padding-left: 45%;padding-right: 45%;font-weight: bold;"><span>Data</span></div>
               </el-form-item>
-              <el-form-item
-                label="标签"
-                prop="label_str"
-                class="deploy-create-form"
-              >
-                <!-- placeholder: 用来在输入框显示提示信息 -->
-                <el-input
-                  v-model="createConfigMap.label_str"
-                  placeholder="示例：app=test,name=test"
-                ></el-input>
-              </el-form-item>
-              <el-form-item
-                label="容器端口"
-                prop="container_port"
-                class="deploy-create-form"
-              >
-                <el-input
-                  v-model="createConfigMap.container_port"
-                  placeholder="示例：80"
-                ></el-input>
-              </el-form-item>
-              <el-form-item
-                label="pod端口"
-                prop="port"
-                class="deploy-create-form"
-              >
-                <el-input
-                  v-model="createConfigMap.port"
-                  placeholder="示例：80"
-                ></el-input>
-              </el-form-item>
-              <el-form-item
-                v-if="createConfigMap.type == 'NodePort'"
-                label="NodePort"
-                class="deploy-create-form"
-              >
-                <el-input
-                  v-model="createConfigMap.node_port"
-                  placeholder="示例：80 (不写默认随机端口)"
-                ></el-input>
+              <el-form-item  class="deploy-create-form">
+                <div v-for="v,i in indexArr" :key="i">
+                  <el-row :gutter="10">
+                    <el-col :span="11">
+                    <el-input placeholder="Key" v-model="cmdatas[i].key"></el-input>
+                    </el-col>
+                    <el-col :span="11">
+                      <el-input placeholder="Value" v-model="cmdatas[i].value"></el-input>
+                    </el-col>
+                    <el-col :span="2">
+                      <el-icon @click="addvalue()"><Plus /></el-icon>
+                    </el-col>
+                  </el-row>
+                </div>
               </el-form-item>
             </el-form>
           </el-col>
@@ -368,8 +329,7 @@
       <template #footer>
         <el-button
           @click="
-            drawer = false;
-            resetForm('createConfigMap');
+            handleClose()
           "
           >取消</el-button
         >
@@ -379,37 +339,30 @@
       </template>
     </el-drawer>
     <!-- yaml编辑器 -->
-    <el-dialog title="YAML信息" v-model="yamlDialog" width="45%" top="5%">
-      <!--:options 编辑器的配置  -->
-      <!-- @change 内容变化后会触发 -->
-      <codemirror
-        :value="contentYaml"
-        border
-        :options="cmOptions"
-        height="500"
-        style="font-size: 14px"
-        @change="onChange"
-      ></codemirror>
+    <el-dialog title="YAML信息" v-model="yamlDialog" width="70%" top="5%">
+      <!-- DevUI里面的编辑器 -->
+      <d-code-editor v-model="contentYaml" :options="{ language: 'yaml' }" style="height: 500px;"></d-code-editor>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="yamlDialog = false">取 消</el-button>
-          <el-button type="primary" @click="updateConfigMap()">更 新</el-button>
+          <el-button type="primary" @click="updatePVC()">更 新</el-button>
         </span>
       </template>
     </el-dialog>
   </div>
 </template>
 <script>
-import common from "../common/Config";
+import { getNamespacesReq } from "@/api/cluster/cluster";
+import {
+createConfigMapReq,
+deleteConfigMapReq,
+getConfigMapsDetailReq,
+getConfigMapsReq,
+updateConfigMapReq
+} from "@/api/configMap/configMap";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
-import {
-  getConfigMapsReq,
-  getConfigMapsDetailReq,
-  updateConfigMapReq,
-  deleteConfigMapReq,
-} from "@/api/configMap/configMap";
-import { getNamespacesReq } from "@/api/cluster/cluster";
+import common from "../common/Config";
 
 export default {
   data() {
@@ -453,7 +406,8 @@ export default {
       drawer: false,
       // 定义el-form规则,只有定义了规则的input前面才会有红点,也就是必填项
       // 规则名要与结构体中的名字保持一致
-      createConfigMapRules: {
+      createConfigMapRules: 
+      {
         name: [
           {
             required: true,
@@ -468,59 +422,21 @@ export default {
             trigger: "change",
           },
         ],
-        type: [
-          {
-            required: true,
-            message: "请选择类型",
-            trigger: "change",
-          },
-        ],
-        container_port: [
-          {
-            required: true,
-            message: "请填写容器端口",
-            trigger: "change",
-          },
-        ],
-        port: [
-          {
-            required: true,
-            message: "请填pod端口",
-            trigger: "change",
-          },
-        ],
-        label_str: [
-          {
-            required: true,
-            message: "请填写标签",
-            trigger: "change",
-          },
-        ],
       },
-
-      createConfigMap: {
-        name: "",
-        namespace: "",
-        type: "",
-        container_port: "",
-        port: "",
-        node_port: "",
-        label_str: "",
-        label: {},
+      //创建secret所需
+      cmdatas:[
+      {
+        key:"",
+        value:""
       },
-      cmTypes: ["ClusterIP", "NodePort", "LoadBalancer"],
+      ],
+      dataIndex:0,
       createConfigMapData: {
-        url: common.K8sCreateCm,
-        params: {
-          name: "",
-          namespace: "",
-          type: "",
-          container_port: 0,
-          port: 0,
-          node_port: 0,
-          label: {},
-        },
+        name:"",
+        namespace:"",
+        data:{},
       },
+      indexArr:[1],
       configmapDetailData: {
         url: common.K8sGetConfigMapDetail,
         params: {
@@ -627,6 +543,59 @@ export default {
         }
       });
     },
+    //重置数据
+    resetData(){
+        this.resetForm("createConfigMap")
+        this.indexArr=[1]
+        this.createConfigMapData.data={}
+        this.cmdatas= [
+       {
+        key:"",
+        value:""
+       },
+        ]
+    },
+    //处理抽屉的关闭，double check 增加体验
+    handleClose(done) {
+      this.$confirm("还有未保存的工作哦确定关闭吗？")
+        .then((_) => {
+          this.drawer=false
+          this.resetData()
+          done();
+        })
+        .catch((_) => {});
+    },
+     //组装data
+     addvalue(){
+      this.indexArr.push(1)
+      this.cmdatas.push(
+        {
+        key:"",
+        value:"",
+      },
+      )
+      console.log("data为：",this.cmdatas)
+    },
+    //创建configMap
+    createConfigMapFunc(){
+      for(let i in this.cmdatas){
+        this.createConfigMapData.data[this.cmdatas[i].key]=this.cmdatas[i].value
+      }
+      console.log("组装好的data为: ",this.createConfigMapData)
+      createConfigMapReq(this.createConfigMapData).then(res=>{
+        this.$message.success({
+          message:res.msg
+        })
+        this.getCms()
+       }).catch(res=>{
+        this.$message.error({
+          message:res.err
+        })
+       }).finally((_)=>{
+        this.drawer=false
+        this.resetData()
+       })
+    },
     //获取namespace列表
     getNamespaces() {
       getNamespacesReq()
@@ -700,14 +669,8 @@ export default {
       alert("等待后续开发");
       this.scalestatus = false;
     },
-    //处理抽屉的关闭，double check 增加体验
-    handleClose(done) {
-      this.$confirm("还有未保存的工作哦确定关闭吗？")
-        .then((_) => {
-          done();
-        })
-        .catch((_) => {});
-    },
+    
+  
     //删除cm
     deleteCm(cm) {
       console.log("要删除的namespoace是：", cm);

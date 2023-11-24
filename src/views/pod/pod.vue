@@ -332,44 +332,36 @@
     />
   </div>
   <!-- yaml编辑器 -->
-  <el-dialog title="YAML信息" v-model="yamlDialog" width="45%" top="5%">
-    <!--:options 编辑器的配置  -->
-    <!-- @change 内容变化后会触发 -->
-    <codemirror
-      :value="contentYaml"
-      border
-      :options="cmOptions"
-      height="500"
-      style="font-size: 14px"
-      @change="onChange"
-    ></codemirror>
-    <template #footer>
-      <span>
-        <el-button @click="yamlDialog = false">取 消</el-button>
-        <el-button type="primary" @click="updatePod()">更 新</el-button>
-      </span>
-    </template>
-  </el-dialog>
+  <el-dialog title="YAML信息" v-model="yamlDialog" width="70%" top="5%">
+      <!-- DevUI里面的编辑器 -->
+      <d-code-editor v-model="contentYaml" :options="{ language: 'yaml' }" style="height: 500px;"></d-code-editor>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="yamlDialog = false">取 消</el-button>
+          <el-button type="primary" @click="updatePVC()">更 新</el-button>
+        </span>
+      </template>
+    </el-dialog>
 </template>
 <script>
-import common from "../common/Config";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
+import common from "../common/Config";
 //引入Xtem终端依赖
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
 // 引入css和js是为了该组件的外观展示
+import { getNamespacesReq } from "@/api/cluster/cluster";
+import {
+deletePodReq,
+getContainersReq,
+getLogReq,
+getPodsDetailReq,
+getPodsReq,
+updatePodsReq,
+} from "@/api/pod/pod";
 import "xterm/css/xterm.css";
 import "xterm/lib/xterm.js";
-import {
-  getPodsReq,
-  updatePodsReq,
-  getPodsDetailReq,
-  deletePodReq,
-  getContainersReq,
-  getLogReq,
-} from "@/api/pod/pod";
-import { getNamespacesReq } from "@/api/cluster/cluster";
 
 export default {
   data() {
@@ -532,8 +524,8 @@ export default {
         rendererType: "canvas", //渲染类型
         rows: 30, //行数
         cols: 110,
-        fontSize: 10,
-        convertEol: false, //启用时，光标将设置为下一行的开头
+        fontSize: 14,
+        convertEol: true, //启用时，光标将设置为下一行的开头,如果为false,打印日志的格式会变乱
         scrollback: 100, //终端中的回滚量
         disableStdin: true, //是否应禁用输入
         cursorStyle: "underline", //光标样式
