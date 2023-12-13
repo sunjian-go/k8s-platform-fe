@@ -167,13 +167,12 @@
 
 <script>
 //引入echarts
-import * as echarts from "echarts";
-import common from "../common/Config";
+import { getNamespacesReq, getNodes } from "@/api/cluster/cluster";
 import { getResourcesReq } from "@/api/home/home";
 import { getPodsReq } from "@/api/pod/pod";
 import { getServicesReq } from "@/api/service/service";
-import { getNodes } from "@/api/cluster/cluster";
-import { getNamespacesReq } from "@/api/cluster/cluster";
+import * as echarts from "echarts";
+import common from "../common/Config";
 
 export default {
   data() {
@@ -525,7 +524,7 @@ export default {
   display: flex;
   align-items: center; /* 垂直居中 */
   float: left;
-  padding-top: 20%;
+  padding-top: 10%;
 }
 .home-dash-card {
   border-radius: 1px;

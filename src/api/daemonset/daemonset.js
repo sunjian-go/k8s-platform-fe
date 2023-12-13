@@ -28,3 +28,10 @@ export function deleteDaemonSetReq(deleteDaemonSetData) {
     params: deleteDaemonSetData,
   });
 }
+export function createDaemonSetReq(createDaemonSetData) {
+  return httpClient({
+    method: "post",
+    url: "/appsv1/createDaemonset",
+    data: createDaemonSetData,
+  });
+}

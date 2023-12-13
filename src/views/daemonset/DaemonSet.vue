@@ -77,12 +77,13 @@
                     v-loading.fullscreen.lock="fullscreenLoading"
                     >创建</el-button
                   > -->
+                  <!-- @click="drawer=true;getCreateData()"
+                    v-loading.fullscreen.lock="fullscreenLoading" -->
                   <el-button
                     icon="Edit"
                     type="primary"
                     style="border-radius: 4px"
-                    @click="drawer=true"
-                    v-loading.fullscreen.lock="fullscreenLoading"
+                    @click="openCreateWindow()"
                     >创建</el-button
                   >
                 </div>
@@ -268,6 +269,7 @@
       v-model="drawer"
       :direction="direction"
       :before-close="handleClose"
+      size="60%"
     >
       <!-- 插槽：抽屉标题  -->
       <template #header>
@@ -282,87 +284,435 @@
             <!-- ref绑定控件后，js中才能用this.$ref获取该控件 -->
             <!-- rules 定义form表单校验规则 -->
             <!-- label-width 限制左侧标题的宽度 -->
+            <!-- :model 与对象进行绑定，用来赋值和修改值 -->
             <el-form
               label-width="80px"
               ref="createDaemonSet"
               :rules="createDaemonSetRules"
               :model="createDaemonSet"
             >
-              <el-form-item label="名称" prop="name" class="deploy-create-form">
-                <el-input v-model="createDaemonSetData.name"></el-input>
-              </el-form-item>
-              <el-form-item
-                label="命名空间"
-                prop="namespace"
-                class="deploy-create-form"
-              >
-                <el-select
-                  v-model="createDaemonSetData.namespace"
-                  filterable
-                  placeholder="请选择"
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="(item, index) in namespaceList"
-                    :key="index"
-                    :label="item.metadata.name"
-                    :value="item.metadata.name"
-                  />
-                </el-select>
-              </el-form-item>
-              <el-form-item
-                label="标签"
-                prop="label_str"
-                class="deploy-create-form"
-              >
-                <!-- placeholder: 用来在输入框显示提示信息 -->
-                <el-input
-                  v-model="label_str"
-                  placeholder="示例: project=ms,app=gateway"
-                ></el-input>
-              </el-form-item>
-              <el-form-item
-                label="镜像"
-                prop="image"
-                class="deploy-create-form"
-              >
-                <el-input v-model="createDaemonSetData.image"></el-input>
-              </el-form-item>
-              <el-form-item
-                label="资源配额"
-                prop="resource"
-                class="deploy-create-form"
-              >
-                <el-select
-                  v-model="resource"
-                  style="width: 100%"
-                  placeholder="cpu/mem"
-                >
-                  <el-option
-                    v-for="(data, i) in resources"
-                    :key="i"
-                    :label="data"
-                    :value="data"
+              <el-row :span="10">
+                <el-col :span="12">
+                  <el-form-item label="名称" prop="name" class="deploy-create-form">
+                      <el-input v-model="createDaemonSet.name"></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item
+                    label="命名空间"
+                    prop="namespace"
+                    class="deploy-create-form"
                   >
-                  </el-option>
-                </el-select>
-              </el-form-item>
-              <el-form-item label="健康检查" class="deploy-create-form">
-                <!-- el-switch 开关按钮 -->
-                <el-switch v-model="createDaemonSetData.healthCheck" />
-              </el-form-item>
-              <el-form-item label="检查路径" class="deploy-create-form">
-                <el-input v-model="createDaemonSetData.healthPath"></el-input>
-              </el-form-item>
+                    <el-select
+                      v-model="createDaemonSet.namespace"
+                      filterable
+                      placeholder="请选择"
+                      style="width: 100%"
+                    >
+                      <el-option
+                        v-for="(item, index) in namespaceList"
+                        :key="index"
+                        :label="item.metadata.name"
+                        :value="item.metadata.name"
+                      />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="12">
+                  <el-form-item
+                    label="标签"
+                    class="deploy-create-form"
+                  >
+                    <!-- placeholder: 用来在输入框显示提示信息 -->
+                    <el-input
+                      v-model="createDaemonSet.label_str"
+                      placeholder="示例: project=ms,app=gateway"
+                    ></el-input>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24">
+                    <el-form-item
+                    label="主机调度"
+                    class="deploy-create-form"
+                  >
+                  <d-collapse v-model="activeNames1">
+                    <d-collapse-item title="配置 Pod 对应的主机调度规则" name="immersive">
+                      <el-row :gutter="10">
+                        <el-col :span="24">
+                          <el-radio v-model="baseChoose1" label="true" @change="baseChoose2=false">指定主机运行所有 Pods</el-radio>
+                            <div v-if="baseChoose1">
+                              <el-select
+                                v-model="createDaemonSet.nodeName"
+                                style="width: 100%"
+                                placeholder="请选择节点"
+                              >
+                                <el-option
+                                  v-for="(node, nindex) in nodes"
+                                  :key="nindex"
+                                  :label="node"
+                                  :value="node"
+                                >
+                                </el-option>
+                              </el-select>
+                            </div>
+                        </el-col>
+                        <el-col :span="24">
+                          <el-radio v-model="baseChoose2" label="true" @change="baseChoose1=false">每个 Pod 自动匹配主机</el-radio>
+                            <div v-if="baseChoose2">
+                              <el-input
+                                v-model="createDaemonSet.nodeSelectorLabel"
+                                placeholder="示例: project=ms,app=gateway"
+                              ></el-input>
+                            </div>
+                        </el-col>
+                      </el-row> 
+                    </d-collapse-item>
+                  </d-collapse>                    
+                  </el-form-item>
+                </el-col>
+                <el-col :span="24" >                 
+                    <div style=" font-weight: bold; font-size: 16px;margin-left: 30px;">容器组</div>
+                </el-col>
+                <el-col :span="24">
+                  <!-- 容器组 -->
+                  <div v-for="v,cindex in createDaemonSet.containerArr.length" :key="cindex" >
+                    <div style="height: 10px;"></div>
+                    <el-card body-style="{padding:'1px'}"> 
+                       <el-row :gutter="10">
+                          <el-col :span="12">
+                            <el-form-item
+                              label="容器名"
+                              class="deploy-create-form"
+                            >
+                              <el-input v-model="createDaemonSet.containerArr[cindex].name"></el-input>
+                            </el-form-item>
+                          </el-col>
+                          <el-col :span="12">
+                            <el-form-item
+                              label="镜像"
+                              class="deploy-create-form"
+                            >
+                              <el-input v-model="createDaemonSet.containerArr[cindex].image"></el-input>
+                            </el-form-item>
+                          </el-col>
+                          <el-col :span="12">
+                            <el-form-item label="下载策略"  class="deploy-create-form">
+                              <el-select v-model="createDaemonSet.containerArr[cindex].imagePullPolicy"  style="width: 100%" placeholder="选择镜像下载策略">
+                                  <el-option
+                                    v-for="(policy, ipindex) in imgPullPolicys"
+                                    :key="ipindex"
+                                    :label="policy"
+                                    :value="policy"
+                                    >
+                                  </el-option>
+                              </el-select>
+                            </el-form-item>
+                          </el-col>
+                          <el-col :span="12">
+                            <el-form-item
+                              label="资源配额"
+                              class="deploy-create-form"
+                            >
+                              <el-select
+                                v-model="createDaemonSet.containerArr[cindex].resource"
+                                style="width: 100%"
+                                placeholder="cpu/mem"
+                              >
+                                <el-option
+                                  v-for="(data, rindex) in resources"
+                                  :key="rindex"
+                                  :label="data"
+                                  :value="data"
+                                >
+                                </el-option>
+                              </el-select>
+                            </el-form-item>
+                          </el-col>
+                          <el-col :span="12">
+                            <el-form-item label="健康检查" class="deploy-create-form">
+                              <!-- el-switch 开关按钮 -->
+                              <el-switch v-model="createDaemonSet.containerArr[cindex].healthCheck" />
+                            </el-form-item>
+                          </el-col>
+                          <el-col :span="12">
+                            <el-form-item v-if="createDaemonSet.containerArr[cindex].healthCheck" label="检查路径" class="deploy-create-form">
+                              <el-input v-model="createDaemonSet.containerArr[cindex].healthPath" placeholder="目前仅支持http请求状态检查"></el-input>
+                            </el-form-item>
+                          </el-col>
+                          <el-col :span="24">
+                            <el-form-item label="环境变量" class="deploy-create-form">
+                              <div v-for="e,eindex in createDaemonSet.containerArr[cindex].envArr.length" :key="eindex">
+                                <div>
+                                  <el-row :gutter="10">
+                                    <el-col :span="10">
+                                    <el-input placeholder="Key" v-model="createDaemonSet.containerArr[cindex].envArr[eindex].name"></el-input>
+                                    </el-col>
+                                    <el-col :span="2" style="text-align: center;">
+                                      <span>=</span>
+                                    </el-col>
+                                    <el-col :span="10">
+                                      <el-input placeholder="Value" v-model="createDaemonSet.containerArr[cindex].envArr[eindex].value"></el-input>
+                                    </el-col>
+                                    <el-col :span="2">
+                                      <el-icon @click="addvalue(createDaemonSet.containerArr[cindex].envArr)"><Plus /></el-icon>
+                                      <el-icon @click="rmvalue(createDaemonSet.containerArr[cindex].envArr)"><Minus /></el-icon>
+                                    </el-col>
+                                  </el-row>
+                                </div>
+                              </div>
+                            </el-form-item>
+                          </el-col>
+                          <el-col :span="24">
+                          </el-col>
+                          <el-col :span="24">
+                          </el-col>
+                       </el-row>
+                      <el-form-item label="数据卷" class="deploy-create-form" >
+                        <d-collapse v-model="activeNames2"  style="width:100%;">
+                          <d-collapse-item :name="createDaemonSet.containerArr[cindex].dataVolumes" title="持久化和共享独立于单个客器生命周期的数据">
+                            <div v-for="vm,vindex in createDaemonSet.containerArr[cindex].volumeArr.length" :key="vindex">
+                              <el-row :gutter="10">
+                                <el-col :span="12" style="padding-bottom: 5px;">
+                                  <span>卷名</span>
+                                  <el-input v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].volumeName"></el-input>
+                                </el-col >
+                                <el-col :span="12" style="padding-bottom: 5px;" v-if="createDaemonSet.containerArr[cindex].volumeArr[vindex].type=='configMap'||
+                                createDaemonSet.containerArr[cindex].volumeArr[vindex].type=='Secret'">
+                                  <span>默认模式</span>
+                                  <el-input v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].mode"></el-input>
+                                </el-col>
+                                <el-col :span="12" style="padding-bottom: 5px;">
+                                  <span>选择类型</span>
+                                    <el-select
+                                    v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].type"
+                                    style="width: 100%"
+                                    placeholder="请选择卷类型"
+                                    @change="getVolumes(createDaemonSet.containerArr[cindex].volumeArr[vindex].type)"
+                                  >
+                                    <el-option
+                                      v-for="(type, tindex) in volume_types"
+                                      :key="tindex"
+                                      :label="type"
+                                      :value="type"
+                                    >
+                                    </el-option>
+                                  </el-select>
+                                </el-col>
+                                <el-col :span="12" v-if="createDaemonSet.containerArr[cindex].volumeArr[vindex].type!='HostPath'&&
+                                createDaemonSet.containerArr[cindex].volumeArr[vindex].type!='EmptyDir'" style="padding-bottom: 5px;">
+                                  <span>选择卷</span>
+                                    <el-select
+                                    v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].context"
+                                    style="width: 100%"
+                                    placeholder="选择数据卷"
+                                    >
+                                    <el-option
+                                      v-for="(volume, vmindex) in volumes"
+                                      :key="vmindex"
+                                      :label="volume"
+                                      :value="volume"
+                                    >
+                                    </el-option>
+                                  </el-select>
+                                </el-col>
+                                <div v-if="createDaemonSet.containerArr[cindex].volumeArr[vindex].type=='configMap'" style="width: 100%;">
+                                  <el-col :span="24" >
+                                      <span>项目</span>
+                                  </el-col>
+                                  <el-col :span="24" style="padding-bottom: 5px;">
+                                    <el-radio v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].radio" label="1">所有键</el-radio>
+                                    <el-radio v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].radio" label="2" @change="getCMKeys(createDaemonSet.namespace,
+                                   createDaemonSet.containerArr[cindex].volumeArr[vindex].context)">选择特定的键</el-radio>
+                                  </el-col>
+                                  <el-col :span="24" v-if="createDaemonSet.containerArr[cindex].volumeArr[vindex].radio==2">
+                                    <div v-for="v,iindex in createDaemonSet.containerArr[cindex].volumeArr[vindex].itemArr.length" :key="iindex" >
+                                      <div style="padding-top: 10px;">
+                                        <el-row :gutter="10">
+                                          <el-col :span="9" style="padding-top: 5px;">
+                                            <el-select style="width:100%;" v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].itemArr[iindex].key" placeholder="选择键：例如username">
+                                              <el-option
+                                                v-for="v,k in tsKeys"
+                                                :key="k"
+                                                :label="v"
+                                                :value="v">
+                                              </el-option>
+                                            </el-select>
+                                          </el-col>
+                                          <el-col :span="9"> 
+                                            <el-input style="padding-top: 5px;" v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].itemArr[iindex].path" placeholder="路径：my-group/my-username"></el-input>
+                                          </el-col>
+                                          <el-col :span="6">
+                                            <el-input style="padding-top: 5px;" v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].itemArr[iindex].mode" placeholder="模式：例如400"></el-input>
+                                          </el-col>
+                                        </el-row>  
+                                      </div>
+                                    </div>
+                                    <div style="width: 100%;display: flex;justify-content: flex-end;padding-top: 10px;padding-bottom: 10px;">
+                                      <!-- <el-button type="primary" @click="addItems(containerArr[cindex].volumeArr[vindex].itemArr)">添加项目</el-button> -->
+                                      <d-button-group size="sm">
+                                        <d-button  icon="delete" color="danger" @click="rmItems(createDaemonSet.containerArr[cindex].volumeArr[vindex].itemArr)" variant="solid">删除项目</d-button>
+                                        <d-button  icon="add" color="primary" @click="addItems(createDaemonSet.containerArr[cindex].volumeArr[vindex].itemArr)" variant="solid">添加项目</d-button>
+                                      </d-button-group>
+                                    </div>
+                                  </el-col>
+                                </div>
+                                <el-col :span="24">
+                                  <el-divider></el-divider>
+                                  <el-row :gutter="10">
+                                    <el-col :span="11">
+                                      <span>容器路径</span>
+                                    </el-col>
+                                    <el-col :span="11">
+                                      <span>子路径(仅适用于数据卷挂载)</span>
+                                    </el-col>
+                                    <el-col :span="2">
+                                      <span>只读</span>
+                                    </el-col>
+                                    <el-col :span="24">
+                                      <div v-for="v,mindex in createDaemonSet.containerArr[cindex].volumeArr[vindex].mountVolumeArr.length" :key="mindex">
+                                        <div style="padding-bottom: 10px;">
+                                          <el-row :gutter="10">
+                                            <el-col :span="11">                                          
+                                                <el-input v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].mountVolumeArr[mindex].mountPath" 
+                                                @blur="createDaemonSet.containerArr[cindex].volumeArr[vindex].volumeName=''?_:
+                                                createDaemonSet.containerArr[cindex].volumeArr[vindex].mountVolumeArr[mindex].name=createDaemonSet.containerArr[cindex].volumeArr[vindex].volumeName"
+                                                ></el-input>                                          
+                                            </el-col>
+                                            <el-col :span="11">                                                 
+                                                <el-input v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].mountVolumeArr[mindex].subPath"></el-input>
+                                            </el-col>
+                                            <el-col :span="2" style="text-align: center;">   
+                                              <el-checkbox v-model="createDaemonSet.containerArr[cindex].volumeArr[vindex].mountVolumeArr[mindex].readOnly"></el-checkbox>
+                                            </el-col>
+                                          </el-row>
+                                         </div>
+                                       </div>
+                                    </el-col>
+                                  </el-row>
+                                  <div style="width: 100%;display: flex;justify-content: flex-end;padding-top: 10px;padding-bottom: 10px;">
+                                    <!-- <el-button type="primary" @click="rmMount(containerArr[cindex].volumeArr[vindex].mountVolumeArr)">删除挂载</el-button>
+                                    <el-button type="primary" @click="addMount(containerArr[cindex].volumeArr[vindex].mountVolumeArr)">添加挂载</el-button> -->
+                                    <d-button-group size="sm">
+                                      <d-button color="danger" icon="delete" @click="rmMount(createDaemonSet.containerArr[cindex].volumeArr[vindex].mountVolumeArr)" variant="solid"> 删除映射</d-button>
+                                      <d-button color="primary" icon="add" @click="addMount(createDaemonSet.containerArr[cindex].volumeArr[vindex].mountVolumeArr)" variant="solid"> 添加映射</d-button>
+                                    </d-button-group>
+                                  </div>
+                                  
+                                </el-col>
+                              </el-row>
+                            </div>
+                            <div style="width: 100%;display: flex;justify-content: flex-end;padding-top: 10px;padding-bottom: 10px;">
+                              <!-- <el-button type="primary" @click="rmVolumes(containerArr[cindex].volumeArr)">删除卷</el-button>
+                              <el-button type="primary" @click="addVolumes(containerArr[cindex].volumeArr)">添加卷</el-button> -->
+                              <d-button-group size="sm">
+                                <d-button color="danger" icon="delete" @click="rmVolumes(createDaemonSet.containerArr[cindex].volumeArr)" variant="solid"> 删除卷</d-button>
+                                <d-button color="primary" icon="add" @click="addVolumes(createDaemonSet.containerArr[cindex].volumeArr)" variant="solid"> 添加卷</d-button>
+                              </d-button-group>
+                            </div>
+                          </d-collapse-item>
+                        </d-collapse>
+                      </el-form-item>
+                      <el-form-item label="端口映射" class="deploy-create-form" >
+                        <d-collapse v-model="activeNames3">
+                          <d-collapse-item  :name="createDaemonSet.containerArr[cindex].portsArr" title="添加规则">
+                            <div>
+                              <el-row :gutter="10">
+                                <el-col :span="7">
+                                  <span>端口名称</span>
+                                </el-col>
+                                <el-col :span="7">
+                                  <span>容器端口</span>
+                                </el-col>
+                                <el-col :span="5">
+                                  <span>协议</span>
+                                </el-col>
+                                <el-col :span="5">
+                                  <span>HostPort模式</span>
+                                </el-col>
+                              </el-row>
+                            </div>
+                            <div v-for="port,pindex in createDaemonSet.containerArr[cindex].portArr.length" :key="pindex">
+                                <div style="width: 100%; padding-top: 15px;padding-bottom: 15px;">
+                                  <el-row :gutter="10">
+                                    <el-col :span="7"> 
+                                      <el-input v-model="createDaemonSet.containerArr[cindex].portArr[pindex].portName" placeholder="例如：myport"></el-input>
+                                    </el-col>
+                                    <el-col :span="7">                                      
+                                      <el-input v-model="createDaemonSet.containerArr[cindex].portArr[pindex].containerPort" placeholder="例如：8080"></el-input>
+                                    </el-col>
+                                    <el-col :span="5">                                     
+                                      <el-select
+                                          v-model="createDaemonSet.containerArr[cindex].portArr[pindex].protocol"
+                                          filterable
+                                          placeholder="请选择协议"
+                                          style="width: 100%;"
+                                        >
+                                          <el-option
+                                            v-for="(p, i) in proctols"
+                                            :key="i"
+                                            :label="p"
+                                            :value="p"
+                                          >
+                                          </el-option>
+                                        </el-select>
+                                    </el-col>
+                                    <el-col :span="5">
+                                      <div>                        
+                                        <d-switch v-model="createDaemonSet.containerArr[cindex].portArr[pindex].hostportStatus">
+                                        </d-switch>
+                                      </div>
+                                    </el-col>
+                                    <el-col :span="12" v-if="createDaemonSet.containerArr[cindex].portArr[pindex].hostportStatus" style="padding-top: 5px;">
+                                      <span>请输入HostPort</span>
+                                      <el-input v-model="createDaemonSet.containerArr[cindex].portArr[pindex].hostPort" placeholder="仅 Pod 所在主机端口可访问"></el-input>
+                                    </el-col>
+                                    <el-col :span="12" v-if="createDaemonSet.containerArr[cindex].portArr[pindex].hostportStatus" style="padding-top: 5px;">
+                                      <span>请输入HostIP</span>
+                                      <el-input v-model="createDaemonSet.containerArr[cindex].portArr[pindex].hostIP" placeholder="例如：127.0.0.1"></el-input>
+                                    </el-col>
+                                  </el-row>
+                                </div>
+                            </div>
+                            <div style="width: 100%;display: flex;justify-content: flex-end;padding-top: 10px;padding-bottom: 10px;">
+                              <!-- <el-button type="primary" @click="rmCPorts(containerArr[cindex].portArr)">去除端口组</el-button>
+                              <el-button type="primary" @click="addPorts(containerArr[cindex].portArr)">添加端口组</el-button> -->
+                              <d-button-group size="sm">
+                                <d-button color="danger" icon="delete" @click="rmCPorts(createDaemonSet.containerArr[cindex].portArr)" variant="solid"> 删除端口组</d-button>
+                                <d-button color="primary" icon="add" @click="addPorts(createDaemonSet.containerArr[cindex].portArr)" variant="solid"> 添加端口组</d-button>
+                              </d-button-group>
+                            </div>
+                          </d-collapse-item>
+                        </d-collapse>
+                      </el-form-item>
+                    <!-- </div> -->
+                    </el-card> 
+                  </div>
+                  <div style="width: 100%;display: flex;justify-content: flex-end;padding-top: 10px;padding-bottom: 10px;">
+                    <d-button-group >
+                      <d-button color="danger" icon="delete" @click="rmContainers" variant="solid">删除容器</d-button>
+                      <d-button color="primary" icon="add" @click="addContainers(createDaemonSet.containerArr)" variant="solid">添加容器</d-button>
+                    </d-button-group>
+                    <!-- <el-button type="primary" @click="rmContainers">去除容器</el-button>
+                    <el-button type="primary" @click="addContainers(containerArr)">添加容器</el-button> -->
+                  </div>   
+                </el-col>
+              </el-row>                     
+            
             </el-form>
           </el-col>
         </el-row>
       </template>
       <template #footer>
-        <el-button @click="drawer = false">取消</el-button>
+        <!-- <el-button @click="drawer = false">取消</el-button>
         <el-button type="primary" @click="submitForm('createDaemonSet')"
           >立即创建</el-button
-        >
+        > -->
+        <div style="width: 100%;display: flex;justify-content: flex-end;padding-top: 10px;padding-bottom: 10px;">
+          <d-button-group size="lg">
+            <d-button  @click="drawer = false" >取消</d-button>
+            <d-button color="primary" @click="submitForm('createDaemonSet')" variant="solid">立即创建</d-button>
+          </d-button-group>
+        </div>
       </template>
     </el-drawer>
     <!-- yaml编辑器 -->
@@ -380,13 +730,19 @@
 </template>
 
 <script>
-import { getNamespacesReq } from "@/api/cluster/cluster";
+import { getNamespacesReq, getNodes } from "@/api/cluster/cluster";
+import {
+getConfigMapsDetailReq,
+getConfigMapsReq,
+} from "@/api/configMap/configMap";
 import {
 deleteDaemonSetReq,
 getDaemonSetsDetailReq,
 getDaemonSetsReq,
 updateDaemonSetsReq,
 } from "@/api/daemonset/daemonset";
+import { getPvcsReq } from "@/api/pvc/pvc";
+import { getSecretsReq } from "@/api/secret/secret";
 import yaml2obj from "js-yaml";
 import json2yaml from "json2yaml";
 import common from "../common/Config";
@@ -395,6 +751,13 @@ export default {
   //components: { codemirror },
   data() {
     return {
+      tsKeys:[],
+      baseChoose1:false,
+      baseChoose2:false,
+      sindex:0,
+      activeNames1: "",
+      activeNames2:"",
+      activeNames3:"",
       restartBool: true, //重启按钮禁止
       namespaceValue: "",
       namespaceList: [],
@@ -408,21 +771,20 @@ export default {
       //创建daemonSet
       label_str:"",
       resource:"",
+      nodes:[],
+      volume_types:["configMap","HostPath","EmptyDir","PersistentVolumeClaim","Secret"],
+      volumes:[],
+      imgPullPolicys:["IfNotPresent","Always","Never"],
+      containerindex:[1],
+      //参数组索引数组
+      envIndex:[1],
+      proctols:["TCP", "UDP"],
+      //创建daemonset对象
       createDaemonSetData: {
         name: "",
         namespace: "",
         label: {},
-        cpu: "",
-        mem: "",
-        healthCheck: false,
-        healthPath: "",
-        volume: [
-          {
-            volumeName: "",
-            type: "",
-            context: ""
-          }
-        ],
+        nodeName: "",
         nodeSelectorLabel: {},
         containers: [
           {
@@ -432,7 +794,9 @@ export default {
               {
                 portName: "",
                 containerPort: 0,
-                hostPort: 0,
+                protocol: "",
+                hostportStatus: false,
+                hostPort: "",
                 hostIP: ""
               }
             ],
@@ -448,17 +812,94 @@ export default {
               {
                 name: "",
                 value: ""
-              },
-              {
-                name: "",
-                value: ""
               }
             ],
-            imagePullpolicy: ""
+            imagePullpolicy: "",
+            cpu: "",
+            mem: "",
+            healthCheck: false,
+            healthPath: ""
+          }
+        ],
+        volume: [
+          {
+            volumeName: "",
+            type: "",
+            context: "",
+            mode: 0,
+            items: [
+              {
+                key: "",
+                path: "",
+                mode: 0
+              }
+            ]
           }
         ]
       },
-
+      nodeSelectors:"",
+      //用于表单中的接收值
+      createDaemonSet: {
+        name: "",
+        namespace: "",
+        label_str:"",
+        nodeName: "",
+        nodeSelectorLabel: "",
+        containerArr: [
+          {
+            dataVolumes:"",
+            portsArr:"",
+            name: '',
+            image: '',
+            imagePullPolicy: '',
+            resource:"",
+            healthCheck: false,
+            healthPath: '',
+            portArr: [
+              {
+                portName:"",
+                containerPort:"",
+                protocol:"",
+                hostportStatus:false,
+                hostPort:"",
+                hostIP:""
+              }
+            ],
+            envArr: [
+              {
+                name: '',
+                value: ''
+              }
+            ],
+            volumeArr: [
+              {
+                //是否选择特定键
+                radio:"1",
+                volumeName:"",
+                type:"",
+                context:"",
+                mode: 400,
+                itemArr: [
+                  {
+                    key: '',
+                    path: '',
+                    mode: ''
+                  }
+                ],
+                mountVolumeArr: [
+                  {
+                    name: '',
+                    mountPath: '',
+                    readOnly: false,
+                    subPath: ''
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+        },
+      
       // 定义el-form规则,只有定义了规则的input前面才会有红点,也就是必填项
       createDaemonSetRules: {
         name: [
@@ -482,26 +923,19 @@ export default {
             trigger: "change",
           },
         ],
-        resource: [
+        containername:[
           {
-            required: true,
-            message: "请选择配额",
-            trigger: "change",
+              required: true,
+              message: "请填写容器名",
+              trigger: "change",
           },
         ],
-        label_str: [
-          {
-            required: true,
-            message: "请填写标签",
-            trigger: "change",
-          },
-        ],
-        container_port: [
-          {
+        containerPort:[
+        {
             required: true,
             message: "请填写容器端口",
             trigger: "change",
-          },
+        },
         ],
       },
       //列表
@@ -567,6 +1001,243 @@ export default {
     };
   },
   methods: {
+    //打开创建页面
+    openCreateWindow() {
+      this.$router.push({
+        path:"/create",
+        query: {
+            obj: "DaemonSet",
+            // obj: "Deployment",
+            // obj: "StatefulSet",
+          }
+        })
+    },
+    getCMKeys(namespace,configmap){
+        let getCmData = {
+          name: configmap,
+          namespace: namespace
+        }
+        getConfigMapsDetailReq(getCmData).
+        then(res=>{
+          for(let key in res.data.data){
+            this.tsKeys.push(key)
+            // console.log("获取到：",key)
+          }
+        }).catch(res=>{
+          console.log(res.err)
+        })
+    },
+    getCreateData(){
+        getNodes().then(res=>{
+          for(let i in res.data.items){
+            this.nodes.push(res.data.items[i].metadata.name)
+          }
+          // console.log(res.data.items[0].metadata.name)
+          // this.nodes=[]
+        }).catch((_)=>{
+          this.nodes=[]
+        })
+    },
+    addPorts(ports){
+        ports.push(
+          {
+                portName:"",
+                containerPort:"",
+                protocol:"",
+                hostportStatus:false,
+                hostPort:"",
+                hostIP:""
+          }
+        )
+      
+    },
+    rmCPorts(ports){
+      if(ports.length>1){
+        ports.pop()
+      }
+    },
+    addVolumes(volumes){
+        volumes.push(
+          {
+              //是否选择特定键
+              radio:"1",
+              volumeName:"",
+              type:"",
+              context:"",
+              mode: 400,
+              itemArr: [
+                {
+                  key: '',
+                  path: '',
+                  mode: ''
+                }
+              ],
+              mountVolumeArr: [
+                {
+                  name: '',
+                  mountPath: '',
+                  readOnly: false,
+                  subPath: ''
+                }
+              ]
+            }
+        )
+        console.log("挂载卷长度为：",this.volumess)
+    },
+    rmVolumes(volumes){
+      if(volumes.length>1){
+        volumes.pop()
+      }
+    },
+    addMount(mounts){
+        mounts.push({
+                name: "",
+                mountPath: "",
+                readOnly: false,
+                subPath: ""
+        })
+        
+    },
+    rmMount(mounts){
+      if(mounts.length>1){
+        mounts.pop()
+      }
+    },
+    addItems(items){
+        items.push(
+          {
+              key: "",
+              path: "",
+              mode:"",
+          }
+        )
+    },
+    rmItems(items){
+      if(items.length>1){
+        items.pop()
+      }
+    },
+    rmContainers(){
+      if(this.containerArr.length > 1){
+        this.containerArr.pop()
+      }
+    },
+    addContainers(containers){
+        console.log("当前容器组为：",this.containerArr)
+        containers.push(
+          {
+          dataVolumes: Math.random().toString(36).substring(2, 10),  //8位随机字符串
+          portsArr:Math.random().toString(36).substring(2, 10),
+          name: '',
+          image: '',
+          imagePullPolicy: '',
+          resource:"",
+          healthCheck: false,
+          healthPath: '',
+          portArr: [
+            {
+                portName:"",
+                containerPort:"",
+                protocol:"",
+                hostportStatus:false,
+                hostPort:"",
+                hostIP:""
+              }
+          ],
+          envArr: [
+            {
+              name: '',
+              value: ''
+            }
+          ],
+          volumeArr: [
+            {
+              //是否选择特定键
+              radio:"1",
+              volumeName:"",
+              type:"",
+              context:"",
+              mode: 400,
+              itemArr: [
+                {
+                  key: '',
+                  path: '',
+                  mode: ''
+                }
+              ],
+              mountVolumeArr: [
+                {
+                  name: '',
+                  mountPath: '',
+                  readOnly: false,
+                  subPath: ''
+                }
+              ]
+            }
+          ]
+        }
+        )
+    },
+      //根据类型获取数据卷
+    getVolumes(type){
+        this.volumes=[]
+        let getVolumeData = {
+          name:"",
+          namespace:this.createDaemonSet.namespace,
+          limit:"",
+          page:"",
+        }
+        switch (type) {
+        case 'configMap':
+          console.log("cm的namespace:",)
+          getConfigMapsReq(getVolumeData).then(res=>{
+            for(let key in res.data.items){
+              this.volumes.push(res.data.items[key].metadata.name)
+            }
+          }).catch(res=>{
+            console.log(res.err)
+          })
+          break;
+        case 'PersistentVolumeClaim':
+          getPvcsReq(getVolumeData).then(res=>{
+            for(let key in res.data.items){
+              this.volumes.push(res.data.items[key].metadata.name)
+            }
+          }).catch(res=>{
+            console.log(res.err)
+          })
+          break;
+        case 'Secret':
+          getSecretsReq(getVolumeData).then(res=>{
+            // console.log("aaaaaa",res.data.Items)
+              for(let key in res.data.Items){
+                this.volumes.push(res.data.Items[key].metadata.name)
+                // console.log("aaaaaa",res)
+              }
+            }).catch(res=>{
+              console.log(res.err)
+            })
+          break;
+        default:
+      }
+    },
+      //组装data
+    addvalue(envs){
+        this.envIndex.push(1)
+        envs.push(
+          {
+            name: "",
+            value: ""
+          }
+        )
+      console.log("环境变量为：",envs)
+    },
+    rmvalue(envs){
+      if(envs.length>1){
+        envs.pop()
+      }
+      console.log(envs)
+    },
     //处理抽屉的关闭，double check 增加体验
     handleClose(done) {
       this.$confirm("还有未保存的工作哦确定关闭吗？")
@@ -628,15 +1299,160 @@ export default {
     },
     //提交daemonset参数
     submitForm(formName) {
-      //验证表单的每个规则是否通过，通过则调用createDeployFunc，反之返回false
+      this.createDaemonSetFunc();
+      //验证表单的每个规则是否通过，通过则调用createDaemonSetFunc，反之返回false
+      console.log("容器组为：",this.containerArr)
       this.$refs[formName].validate((valid) => {
         if (valid) {
-          this.createDeployFunc();
+          this.createDaemonSetFunc();
         } else {
           return false;
         }
       });
     },
+    authLabels(label){
+      let reg = new RegExp("(^[A-Za-z]+=[A-Za-z0-9]+).*");
+      //如果不匹配
+      if (!reg.test(label)) {
+        return 2;
+      }else{
+        let lab = new Map();
+        // 将label_str字符串通过","进行分割，返回一个数组存储在a中：例如目前该字符串为："name=test,app=web",那么a就等于["name=test","app=web"]
+        let a = label.split(",");
+        //遍历a数组中的每个元素
+        a.forEach((item) => {
+          // item就是每个元素，将每个元素通过"="进行分割，得到一个子字符串数组b，例如，如果当前元素是"name=test"，则b将是["name", "test"]。
+          let b = item.split("=");
+          // 将分割后的子字符串数组中的第一个元素作为键，第二个元素作为值，存储在上面创建的label对象(map)中。
+          lab[b[0]] = b[1];
+        });
+        return lab
+      }
+    },
+    //创建daemonset
+    createDaemonSetFunc(){
+      //组装基本数据
+      this.createDaemonSetData.name=this.createDaemonSet.name
+      this.createDaemonSetData.namespace=this.createDaemonSet.namespace
+      this.createDaemonSetData.nodeName=this.createDaemonSet.nodeName
+      //组装label
+      let label=this.authLabels(this.createDaemonSet.label_str)
+      if(label==2){
+           console.log("标签填写异常，请确认后重新填写") 
+        }else{
+          this.createDaemonSetData.label=label
+          console.log("标签为：",this.createDaemonSetData.label)
+        }
+      //组装nodeSelectorLabel
+      if(this.createDaemonSet.nodeSelectorLabel!=""){
+        let nodelabel=this.authLabels(this.createDaemonSet.nodeSelectorLabel)
+        if(nodelabel==2){
+          //  this.$message.error({
+          //   message: "标签填写异常，请确认后重新填写",
+          //   title: "警告"
+          //  })
+           console.log("节点标签填写异常，请确认后重新填写")
+        }else{
+          this.createDaemonSetData.nodeSelectorLabel=nodelabel
+          console.log("节点标签为：",this.createDaemonSetData.nodeSelectorLabel)
+        }
+      }
+      let vindex=0
+      for(let i in this.createDaemonSet.containerArr){
+          if(i > 0){
+            this.createDaemonSetData.containers[i]={
+                 name: "",
+                image: "",
+                ports: [
+                  {
+                    portName: "",
+                    containerPort: 0,
+                    protocol: "",
+                    hostportStatus: false,
+                    hostPort: "",
+                    hostIP: ""
+                  }
+                ],
+                montVolume: [
+                  {
+                    name: "",
+                    mountPath: "",
+                    readOnly: false,
+                    subPath: ""
+                  }
+                ],
+                envs: [
+                  {
+                    name: "",
+                    value: ""
+                  }
+                ],
+                imagePullpolicy: "",
+                cpu: "",
+                mem: "",
+                healthCheck: false,
+                healthPath: ""
+            }
+          }
+          this.createDaemonSetData.containers[i].name=this.createDaemonSet.containerArr[i].name
+          this.createDaemonSetData.containers[i].image=this.createDaemonSet.containerArr[i].image
+          this.createDaemonSetData.containers[i].imagePullpolicy=this.createDaemonSet.containerArr[i].imagePullPolicy
+          this.createDaemonSetData.containers[i].healthCheck=this.createDaemonSet.containerArr[i].healthCheck
+          this.createDaemonSetData.containers[i].healthPath=this.createDaemonSet.containerArr[i].healthPath
+          if(this.createDaemonSet.containerArr[i].resource!=""){
+            console.log("资源值：",this.createDaemonSet.containerArr[i].resource)
+            let resourceList = this.createDaemonSet.containerArr[i].resource.split("/");
+            let cpu,memory=""
+            cpu = resourceList[0];
+            memory = resourceList[1] + "Gi";
+            this.createDaemonSetData.containers[i].cpu=cpu
+            this.createDaemonSetData.containers[i].mem=memory
+          }
+          for(let j in this.createDaemonSet.containerArr[i].portArr){
+            this.createDaemonSetData.containers[i].ports[j]=this.createDaemonSet.containerArr[i].portArr[j]
+          }
+          for(let j in this.createDaemonSet.containerArr[i].envArr){
+            this.createDaemonSetData.containers[i].envs[j]=this.createDaemonSet.containerArr[i].envArr[j]
+          }
+          console.log("卷数据为：",this.createDaemonSet.containerArr[i].volumeArr)
+          for(let v in this.createDaemonSet.containerArr[i].volumeArr){
+            if(vindex > 0){
+              this.createDaemonSetData.volume[vindex]=
+                {
+                  volumeName: "",
+                  type: "",
+                  context: "",
+                  mode: 0,
+                  items: [
+                    {
+                      key: "",
+                      path: "",
+                      mode: 0
+                    }
+                  ]
+                }
+            }
+            console.log("卷名为：",this.createDaemonSet.containerArr[i].volumeArr[v].volumeName)
+            //组装卷组
+            this.createDaemonSetData.volume[vindex].volumeName=this.createDaemonSet.containerArr[i].volumeArr[v].volumeName
+            this.createDaemonSetData.volume[vindex].type=this.createDaemonSet.containerArr[i].volumeArr[v].type
+            this.createDaemonSetData.volume[vindex].context=this.createDaemonSet.containerArr[i].volumeArr[v].context
+            this.createDaemonSetData.volume[vindex].mode=this.createDaemonSet.containerArr[i].volumeArr[v].mode
+            this.createDaemonSetData.volume[vindex].items=this.createDaemonSet.containerArr[i].volumeArr[v].itemArr
+            vindex++
+          }
+           //组装挂载组
+          let mindex = 0
+          for(let vv in this.createDaemonSet.containerArr[i].volumeArr){
+            for(let m in this.createDaemonSet.containerArr[i].volumeArr[vv].mountVolumeArr){
+              this.createDaemonSetData.containers[i].montVolume[mindex]=this.createDaemonSet.containerArr[i].volumeArr[vv].mountVolumeArr[m]
+              mindex++
+            }
+          }
+
+      }
+      console.log("创建的daemonset为：",this.createDaemonSetData)
+  },
     //刷新页面的时候将namespace置为默认值
     resetNamespace() {
       this.namespaceValue = "";
@@ -814,7 +1630,7 @@ export default {
   margin-bottom: 5px;
 }
 .deploy-create-form {
-  width: 80%;
+  width: 100%;
 }
 .deploy-head-card,
 .deploy-body-card {
@@ -835,5 +1651,11 @@ export default {
 .time {
   font-size: 13px;
   color: rgb(145, 143, 143);
+}
+.deploy-create-form{
+  width: 100%;
+}
+.allFont{
+  font-size: 16px;
 }
 </style>

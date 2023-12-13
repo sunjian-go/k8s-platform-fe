@@ -77,19 +77,20 @@
                 >
               </template>
               <!--处理子菜单栏-->
-              <el-menu-item
-                class="aside-menu-childitem"
-                :style="dynamicFontStyle"
-                v-for="child in m.children"
-                :key="child"
-                :index="child.path"
-              >
-                <template #title>
-                  <el-icon><component :is="child.icon" /></el-icon>
-                  <!--下面child.name就是index.js里面工作负载的所有子路由的name-->
-                  {{ child.name }}
-                </template>
-              </el-menu-item>
+              <div v-for="child in m.children" :key="child">
+                <el-menu-item
+                  v-if="child.meta.showStatus!=false"
+                  class="aside-menu-childitem"
+                  :style="dynamicFontStyle"
+                  :index="child.path"
+                >
+                  <template #title >
+                    <el-icon><component :is="child.icon"/></el-icon>
+                    <!--下面child.name就是index.js里面工作负载的所有子路由的name-->
+                    {{ child.name }}
+                  </template>
+                </el-menu-item>
+              </div>
             </el-sub-menu>
           </div>
         </el-menu>
@@ -217,10 +218,10 @@
 </template>
 
 <script>
+import { getColorReq, updateColorReq } from "@/api/style/style";
+import Cookies from "js-cookie";
 import { useRouter } from "vue-router";
 import common from "../views/common/Config";
-import Cookies from "js-cookie";
-import { getColorReq, updateColorReq } from "@/api/style/style";
 
 export default {
   data() {
@@ -401,7 +402,7 @@ export default {
   color: white;
 }
 .logo-img {
-  width: 40px;
+  width: 55px;
   height: 40px;
   top: 12px;
   padding-left: 12px;

@@ -23,52 +23,54 @@
           <span>用户登录</span>
         </div>
       </template>
-      <el-form v-model="loginData" :rules="loginDataRules" ref="loginData">
-        <el-form-item>
-          <el-row :gutter="10">
-            <el-col :span="24">
-              <!-- prefix-icon="UserFilled"  在输入框前面加图标 -->
+      <div>
+        <el-form :model="loginData" :rules="loginDataRules" ref="loginData">
+          <el-form-item prop="username">
+            <div style="width:100%">
               <el-input
                 prefix-icon="UserFilled"
                 placeholder="请输入账号"
                 v-model="loginData.username"
                 style="height: 40px"
-                prop="username"
-              ></el-input
-            ></el-col>
-            <el-col :span="24" style="height: 5px"></el-col>
-            <el-col :span="24"
-              ><el-input
+                
+              ></el-input>
+            </div>
+          </el-form-item>
+          <el-form-item prop="password">
+            <div style="width:100%;padding-top: 10px;">
+              <el-input
                 prefix-icon="Lock"
                 placeholder="请输入密码"
                 v-model="loginData.password"
                 type="password"
                 style="height: 40px"
-                prop="password"
-              ></el-input
-            ></el-col>
-            <el-col :span="24">
-              <div class="loginBtn">
+                
+                @keyup.enter="submitForm('loginDataRules')"
+              ></el-input>
+            </div>
+          </el-form-item>
+        </el-form>
+        <div>
+          <div class="loginBtn">
                 <el-button
                   type="primary"
-                  style="width: 100%; height: 40px"
-                  @click="handleLogin"
+                  style="width: 100%; height: 40px"                           
+                  @click="submitForm('loginDataRules')"
                   >登录</el-button
                 >
-              </div>
-            </el-col>
-          </el-row>
-        </el-form-item>
-      </el-form>
+          </div>
+        </div>
+      </div>
+      
     </el-card>
   </div>
 </template>
 
 <script>
-import common from "../common/Config";
-import moment from "moment";
-import Cookies from "js-cookie";
 import { login } from "@/api/user/user";
+import Cookies from "js-cookie";
+import moment from "moment";
+import common from "../common/Config";
 export default {
   data() {
     return {
@@ -101,6 +103,20 @@ export default {
     };
   },
   methods: {
+    //校验账号密码
+    submitForm(formName) {
+      console.log(this.$refs[formName])
+      //验证表单的每个规则是否通过，通过则调用createDeployFunc，反之返回false
+      this.$refs['loginData'].validate((valid) => {
+        if (valid) {
+          console.log("验证成功")
+          this.handleLogin();
+        } else {
+          console.log("验证失败")
+          return false;
+        }
+      });
+    },
     //登录方法
     handleLogin() {
       console.log("准备登录：", this.loginData);
@@ -129,7 +145,7 @@ export default {
         })
         .catch((res) => {
           this.$message.error({
-            message: res.err,
+            message: "账号或密码错误",
           });
         });
     },
@@ -150,7 +166,7 @@ export default {
   left: 55%;
   top: 45%;
   width: 400px;
-  height: 250px;
+  height: 270px;
   border-radius: 5px;
   background: rgb(255, 255, 255);
   overflow: hidden;

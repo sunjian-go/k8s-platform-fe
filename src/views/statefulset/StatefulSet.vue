@@ -67,21 +67,12 @@
             <el-row :gutter="15">
               <!-- 创建按钮 -->
               <el-col :span="1.5" style="margin-left: -10px">
-                <div>
-                  <!-- v-loading.fullscreen.lock： 指定全屏加载 -->
-                  <!-- <el-button
-                    icon="Edit"
-                    type="primary"
-                    style="border-radius: 4px"
-                    @click="drawer = true"
-                    v-loading.fullscreen.lock="fullscreenLoading"
-                    >创建</el-button
-                  > -->
+                <div>                  
                   <el-button
                     icon="Edit"
                     type="primary"
                     style="border-radius: 4px"
-                    @click="waitdev()"
+                    @click="openCreateWindow()"
                     v-loading.fullscreen.lock="fullscreenLoading"
                     >创建</el-button
                   >
@@ -573,6 +564,17 @@ export default {
     };
   },
   methods: {
+    //打开创建页面
+    openCreateWindow() {
+      this.$router.push({
+        path:"/create",
+        query: {
+            // obj: "DaemonSet",
+            // obj: "Deployment",
+            obj: "StatefulSet",
+          }
+        })
+    },
     //处理抽屉的关闭，double check 增加体验
     handleClose(done) {
       this.$confirm("还有未保存的工作哦确定关闭吗？")

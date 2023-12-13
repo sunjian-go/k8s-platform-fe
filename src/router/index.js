@@ -113,6 +113,12 @@ const routes = [
         meta: { title: "StatefulSet", requireAuth: true },
         component: () => import("@/views/statefulset/StatefulSet.vue"), //视图组件
       },
+      {
+        path: "/create", //视图
+        name: "create",
+        meta: { title: "createDaemonset", requireAuth: true, showStatus: false}, //定义meta元数据
+        component: () => import("@/views/cronlFunc/create.vue"), //视图组件
+      },
     ],
   },
 

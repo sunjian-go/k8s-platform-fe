@@ -28,3 +28,10 @@ export function deleteStatefulSetReq(deleteStatefulSetData) {
     params: deleteStatefulSetData,
   });
 }
+export function createStatefulSetReq(createStatefulSetData) {
+  return httpClient({
+    method: "post",
+    url: "/appsv1/createStatefulSet",
+    data: createStatefulSetData,
+  });
+}
