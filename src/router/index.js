@@ -92,31 +92,31 @@ const routes = [
       {
         path: "/workload/deployment", //视图,访问子页面的时候会带上layout布局页面
         name: "Deployment",
-        meta: { title: "Deployment", requireAuth: true },
+        meta: { title: "Deployment", requireAuth: true, type: "workload" },
         component: () => import("@/views/deployment/deployment.vue"), //视图组件
       },
       {
         path: "/workload/pod", //视图,访问子页面的时候会带上layout布局页面
         name: "Pod",
-        meta: { title: "pod", requireAuth: true },
+        meta: { title: "pod", requireAuth: true,type: "workload" },
         component: () => import("@/views/pod/pod.vue"), //视图组件
       },
       {
         path: "/workload/daemonset", //视图,访问子页面的时候会带上layout布局页面
         name: "DaemonSet",
-        meta: { title: "DaemonSet", requireAuth: true },
+        meta: { title: "DaemonSet", requireAuth: true,type: "workload" },
         component: () => import("@/views/daemonset/DaemonSet.vue"), //视图组件
       },
       {
         path: "/workload/statefulset", //视图,访问子页面的时候会带上layout布局页面
         name: "StatefulSet",
-        meta: { title: "StatefulSet", requireAuth: true },
+        meta: { title: "StatefulSet", requireAuth: true,type: "workload" },
         component: () => import("@/views/statefulset/StatefulSet.vue"), //视图组件
       },
       {
-        path: "/create", //视图
+        path: "/workload/create", //视图
         name: "create",
-        meta: { title: "createDaemonset", requireAuth: true, showStatus: false}, //定义meta元数据
+        meta: { title: "createDaemonset", requireAuth: true, showStatus: false,type: "workload"}, //定义meta元数据
         component: () => import("@/views/cronlFunc/create.vue"), //视图组件
       },
     ],

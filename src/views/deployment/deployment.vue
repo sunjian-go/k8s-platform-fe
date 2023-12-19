@@ -624,7 +624,7 @@ export default {
     //打开创建页面
     openCreateWindow() {
       this.$router.push({
-        path:"/create",
+        path:"/workload/create",
         query: {
             // obj: "DaemonSet",
             obj: "Deployment",

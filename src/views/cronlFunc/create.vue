@@ -475,14 +475,14 @@
                                                                 <div>
                                                                     <span class="rulesFont" v-if="createController.containerArr[cindex].volumeArr[vindex].uniqFlag">该卷名已存在，请重新输入</span>
                                                                 </div>
-                                                            </el-col >
+                                                            </el-col>
                                                             <el-col :span="12" style="padding-bottom: 5px;">
                                                                 <span>选择类型</span>
                                                                 <el-select
                                                                 v-model="createController.containerArr[cindex].volumeArr[vindex].volume.type"
                                                                 style="width: 100%"
                                                                 placeholder="请选择卷类型"
-                                                                @change="getVolumes(createController.containerArr[cindex].volumeArr[vindex].volume.type)">
+                                                                @change="getVolumes(createController.containerArr[cindex].volumeArr[vindex].volume.type);createController.containerArr[cindex].volumeArr[vindex].volume.context=''">
                                                                 <el-option
                                                                 v-for="(type, tindex) in volume_types"
                                                                 :key="tindex"
@@ -497,7 +497,7 @@
                                                                 createController.containerArr[cindex].volumeArr[vindex].volume.type=='PersistentVolumeClaim' ||
                                                                 createController.containerArr[cindex].volumeArr[vindex].volume.type=='Secret'" style="padding-bottom: 5px;">
                                                                     <span>选择卷</span>
-                                                                    <el-icon class="rulesIcon"><StarFilled /></el-icon> 
+                                                                    <el-icon class="rulesIcon"><StarFilled /></el-icon>
                                                                         <el-select
                                                                             v-model="createController.containerArr[cindex].volumeArr[vindex].volume.context"
                                                                             style="width: 100%"

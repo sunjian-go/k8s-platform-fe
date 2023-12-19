@@ -24,23 +24,26 @@
         <!-- router 使用 vue-router 的模式，启用该模式会在激活导航时以 index 作为 path 进行路由跳转 -->
         <!-- default-active 默认激活的菜单栏,根据打开的path来找到对应的栏 -->
         <!-- collapse 是否折叠 ;background-color="#131b27"-->
+        <!-- active-text-color="#20a0ff" -->
+        <!-- text-color="#bfcbd9" 控制el-submenu的下箭头颜色 -->
+        <!-- :default-active="$route.path" -->
         <el-menu
           :style="dynamicStyle"
           class="aside-menu"
           router
-          :default-active="$route.path"
+          :default-active="defaultActive"
           :collapse="isCollapse"
           background-color="color"
           text-color="#bfcbd9"
-          active-text-color="#20a0ff"
         >
           <!-- for循环路由规则，routers就是router/index.js中的routers -->
-          <div v-for="m in routers" :key="m">
+          <div v-for="m in routers" :key="m" style="padding-left: 10px;padding-right: 10px;padding-top: 2px;">
             <!-- 第一种情况：路由规则children只有1个的菜单栏 -->
             <!--v-if判断：m.children表示有这个children，并且children长度为1，也就是只有一个子路由的情况下-->
             <!--index表示点击该路由时跳转到的页面-->
             <el-menu-item
               class="aside-menu-item"
+              style="height: 50px;"
               v-if="m.children && m.children.length == 1"
               :index="m.children[0].path"
             >
@@ -77,12 +80,12 @@
                 >
               </template>
               <!--处理子菜单栏-->
-              <div v-for="child in m.children" :key="child">
+              <div v-for="child in m.children" :key="child" style="padding-top: 2px;">
                 <el-menu-item
                   v-if="child.meta.showStatus!=false"
                   class="aside-menu-childitem"
                   :style="dynamicFontStyle"
-                  :index="child.path"
+                  :index="child.path"                  
                 >
                   <template #title >
                     <el-icon><component :is="child.icon"/></el-icon>
@@ -226,6 +229,7 @@ import common from "../views/common/Config";
 export default {
   data() {
     return {
+      defaultActive:"",
       //导入logo图片
       logo: require("@/assets/img/k8s-metrics.png"),
       avator: require("@/assets/img/avator.png"),
@@ -248,7 +252,32 @@ export default {
           color: "",
         },
       },
+      pathFlag:0
     };
+  },
+  watch: {
+    '$route': {
+      handler(newRoute) {
+        const newPath = newRoute.path;
+        console.log("路由发生变化，新的路径：", newPath);
+        // 在这里可以检查 $route.path 是否有变化
+        if(newPath=='/home' && sessionStorage.getItem('flag')!=1){   //sessionStorage.getItem('flag')!=1,表示只有第一次跳转该页面的时候flag才会不等于1，只要跳转过一次，那么后面都会等于1
+          this.defaultActive=""
+          sessionStorage.setItem('flag', 1); 
+          // sessionStorage.setItem('path', '/home'); 
+        }else if (this.defaultActive !== newPath && newPath != '/workload/create') {
+            // $route.path 发生变化
+            this.defaultActive = newPath;
+            // 保存路径到 sessionStorage (存储在 sessionStorage 里面的数据在页面会话结束时会被清除)
+            sessionStorage.setItem('path', this.defaultActive); 
+        }else{
+          //由于刷新页面后，子菜单没有/workload/create这一项，没有选中状态，所以直接读取刷新页面之前的path值即可解决
+          this.defaultActive=sessionStorage.getItem('path');
+        }
+      },
+      immediate: true, // 立即执行一次，捕获初始值
+      deep: true
+    }
   },
   // computed里面：当值改变了，会自动重新获取该值
   computed: {
@@ -278,6 +307,9 @@ export default {
     this.routers = useRouter().options.routes;
     //从后端获取颜色
     this.getColorForServer();
+    if(sessionStorage.getItem('flag')!=1){
+      sessionStorage.setItem('flag', 0);
+    } 
   },
   methods: {
     //控制折叠
@@ -307,6 +339,7 @@ export default {
             type: "success",
             message: "已退出!",
           });
+          sessionStorage.setItem('flag', 0);
           //跳转至/login页面
           this.$router.push("/login");
         })
@@ -415,13 +448,16 @@ export default {
 
 .aside-menu-item {
   padding-left: 20px !important; /* 被标记为!important时，它的优先级会高于其他样式规则 */
+  border-radius: 10px
 }
 
 .aside-sub-menu {
   padding-left: 20px !important;
+  border-radius: 10px
 }
 .aside-menu-childitem {
   padding-left: 20px !important;
+  border-radius: 10px
 }
 .font-color {
   color: white;
@@ -430,4 +466,15 @@ export default {
 .main {
   padding: 10px; /*4个内边距都为10px */
 }
+
+.el-menu-item.is-active {
+    background-color: #204e94;   /*el-menu-item被激活时的颜色 */
+}
+.el-menu-item:hover {
+    background-color: #204e94;   /*el-menu-item鼠标悬停的颜色 */
+}
+::v-deep .el-sub-menu__title:hover {   /*::v-deep穿透，穿透到el-sub-menu的样式里面修改*/
+    background-color: transparent;
+}
+
 </style>
